@@ -1,0 +1,116 @@
+:root {
+  --navy: #0b1f3a;
+  --navy-light: #102a4f;
+  --blue: #2563eb;
+  --blue-light: #3b82f6;
+  --gray: #9ca3af;
+  --bg: #f3f6fc;
+  --white: #ffffff;
+}
+
+body {
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto;
+  margin: 0;
+  background: var(--bg);
+}
+
+.app-container {
+  max-width: 900px;
+  margin: auto;
+  padding: 16px;
+}
+
+/* NAVBAR */
+.navbar {
+  background: var(--navy);
+  color: white;
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.navbar a {
+  color: white;
+  text-decoration: none;
+  margin-left: 14px;
+  font-size: 14px;
+}
+
+.navbar-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* PAGE TITLE */
+.page-title {
+  margin-top: 16px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+/* SECTIONS AS CARDS */
+.card {
+  background: white;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  margin-top: 14px;
+}
+
+/* BUTTON GROUP LAYOUT */
+.button-group {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+}
+
+button,
+a.button-link {
+  background: var(--blue);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+a.button-link {
+  text-decoration: none;
+}
+
+button.secondary {
+  background: var(--navy);
+}
+
+.logout-btn {
+  background: #dc2626;
+}
+
+/* GROUP LIST */
+.group-item {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--navy-light);
+  color: white;
+  display: inline-block;
+}
+
+/* SPACING */
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 10px;
+}
+
+/* MOBILE */
+@media (max-width: 650px) {
+  .button-group {
+    grid-template-columns: 1fr;
+  }
+}

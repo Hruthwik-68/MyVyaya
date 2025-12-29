@@ -1,0 +1,543 @@
+import React from "react";
+
+interface Props {
+  amount: string;
+  desc: string;
+  paidBy: string;
+  setAmount: (v: string) => void;
+  setDesc: (v: string) => void;
+  setPaidBy: (v: string) => void;
+  members: { user_id: string }[];
+  addExpense: () => void;
+  loading: boolean;
+  showName?: (uid: string) => string;   // 👈 OPTIONAL + SAFE
+}
+
+export default function AddExpenseForm({
+  amount,
+  desc,
+  paidBy,
+  setAmount,
+  setDesc,
+  setPaidBy,
+  members,
+  addExpense,
+  loading,
+  showName
+}: Props) {
+  return (
+    <div>
+      <hr />
+      <h3>Add Expense</h3>
+
+      <input
+        type="number"
+        placeholder="Amount ₹"
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
+      />
+      <br /><br />
+
+      <input
+        placeholder="Description"
+        value={desc}
+        onChange={(e) => setDesc(e.target.value)}
+      />
+      <br /><br />
+
+      <select value={paidBy} onChange={(e) => setPaidBy(e.target.value)}>
+        <option value="">Paid by…</option>
+
+        {members.map((m) => (
+          <option key={m.user_id} value={m.user_id}>
+            {showName ? showName(m.user_id) : m.user_id}
+          </option>
+        ))}
+      </select>
+
+      <br /><br />
+
+      <button disabled={loading} onClick={addExpense}>
+        Save Expense
+      </button>
+    </div>
+  );
+}
+
+
+import React from "react";
+
+export default function BalanceSummary({ myBalance }: { myBalance: number }) {
+  return (
+    <div>
+      <hr />
+      <h3>Your Balance</h3>
+
+      {myBalance > 0 && <p>You should receive <b>₹{myBalance.toFixed(2)}</b></p>}
+      {myBalance < 0 && <p>You should pay <b>₹{Math.abs(myBalance).toFixed(2)}</b></p>}
+      {myBalance === 0 && <p>You are settled</p>}
+    </div>
+  );
+}
+
+
+import React from "react";
+
+interface Props {
+  expenses: any[];
+  currentUser: any;
+  showName: (uid: string) => string;
+}
+
+export default function ExpensesTable({
+  expenses,
+  currentUser,
+  showName
+}: Props) {
+  return (
+    <div>
+      <hr />
+      <h3>Expenses</h3>
+
+      <table border={1} cellPadding={5}>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Amount ₹</th>
+            <th>Paid By</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {expenses.map((e) => (
+            <tr key={e.id}>
+              <td>{new Date(e.date).toLocaleString("en-IN")}</td>
+              <td>{e.description}</td>
+              <td>{e.amount}</td>
+              <td>{showName(e.paid_by)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+
+import React from "react";
+
+interface Props {
+  members: { user_id: string }[];
+  participants: string[];
+  setParticipants: (arr: string[]) => void;
+  splits: { user_id: string; percent: number }[];
+  setSplits: (arr: { user_id: string; percent: number }[]) => void;
+  currentUser: any;
+  showName: (uid: string) => string;
+}
+
+export default function MemberTags({
+  members,
+  participants,
+  setParticipants,
+  setSplits,
+  currentUser,
+  showName
+}: Props) {
+  return (
+    <div>
+      <hr />
+      <h3>Tags — Who is part of this expense?</h3>
+
+      {members.map((m) => (
+        <div key={m.user_id}>
+          <label>
+            <input
+              type="checkbox"
+              checked={participants.includes(m.user_id)}
+              onChange={() => {
+                let updated = [...participants];
+
+                if (updated.includes(m.user_id))
+                  updated = updated.filter((u) => u !== m.user_id);
+                else updated.push(m.user_id);
+
+                setParticipants(updated);
+
+                const equal = updated.length ? 100 / updated.length : 0;
+
+                setSplits(
+                  updated.map((u) => ({
+                    user_id: u,
+                    percent: parseFloat(equal.toFixed(2))
+                  }))
+                );
+              }}
+            />
+            {showName(m.user_id)}
+          </label>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
+import React from "react";
+
+interface Payment {
+  id: string;
+  from_user: string;
+  to_user: string;
+  amount: number;
+  status: string;
+  created_at: string;
+}
+
+interface Props {
+  payments: Payment[];
+  currentUser: any;
+  showName: (uid: string) => string;
+}
+
+export default function PaymentHistory({ payments, showName }: Props) {
+  return (
+    <div>
+      <hr />
+      <h3>Payment History</h3>
+
+      <table border={1} cellPadding={5}>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Amount</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {payments.map((p) => (
+            <tr key={p.id}>
+              <td>{new Date(p.created_at).toLocaleString("en-IN")}</td>
+              <td>{showName(p.from_user)}</td>
+              <td>{showName(p.to_user)}</td>
+              <td>₹{p.amount}</td>
+              <td>{p.status}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+
+
+import React from "react";
+
+interface Payment {
+  id: string;
+  from_user: string;
+  to_user: string;
+  amount: number;
+  status: string;
+}
+
+interface Props {
+  payments: Payment[];
+  currentUser: any;
+  confirmPayment: (id: string) => void;
+  showName: (uid: string) => string;
+}
+
+export default function PendingPayments({
+  payments,
+  currentUser,
+  confirmPayment,
+  showName
+}: Props) {
+  return (
+    <div>
+      <hr />
+      <h3>Payments awaiting your confirmation</h3>
+
+      {payments
+        .filter((p) => p.status === "pending")
+        .filter((p) => p.to_user === currentUser?.id)
+        .map((p) => (
+          <div key={p.id}>
+            {showName(p.from_user)} paid you ₹{p.amount}
+            <button onClick={() => confirmPayment(p.id)}>Confirm</button>
+          </div>
+        ))}
+    </div>
+  );
+}
+
+
+
+import React from "react";
+
+type Member = {
+  user_id: string;
+  email?: string;
+};
+
+type Settlement = {
+  from: string;
+  to: string;
+  amount: number;
+};
+
+export default function SettlementsGraph({
+  members,
+  settlements,
+  currentUserId,
+}: {
+  members: Member[];
+  settlements: Settlement[];
+  currentUserId: string;
+  showName: (uid: string) => string;
+}) {
+  // 👤 pick avatar text
+  const getLabel = (id: string) => {
+    if (id === currentUserId) return "You";
+    if (!id) return "?";
+
+    return id.slice(0, 2).toUpperCase(); // first 2 letters of UUID
+  };
+
+  // 🎨 random emoji for fun
+  const emojis = ["😄","😎","🧠","🔥","🚀","🎯","🦁","🐼","🐸","🐯"];
+
+  const getEmoji = (i: number) => emojis[i % emojis.length];
+
+  // 🟢 layout nodes in a circle
+  const radius = 120;
+  const centerX = 200;
+  const centerY = 160;
+
+  const positioned = members.map((m, i) => {
+    const angle = (2 * Math.PI * i) / members.length;
+
+    return {
+      ...m,
+      x: centerX + radius * Math.cos(angle),
+      y: centerY + radius * Math.sin(angle),
+    };
+  });
+
+  const find = (id: string) =>
+    positioned.find((m) => m.user_id === id) || { x: 0, y: 0 };
+
+  return (
+    <div style={{ marginTop: 30 }}>
+      <h3>Visual Split Map</h3>
+
+      <svg width={400} height={330} style={{ border: "1px solid #ddd" }}>
+
+        {/* ==== DRAW ARROWS ==== */}
+        {settlements.map((s, index) => {
+          const from = find(s.from);
+          const to = find(s.to);
+
+          if (!from || !to) return null;
+
+          const color = s.from === currentUserId ? "red" : "green";
+
+          return (
+            <g key={index}>
+              {/* arrow line */}
+              <defs>
+                <marker
+                  id="arrow"
+                  markerWidth="8"
+                  markerHeight="8"
+                  refX="8"
+                  refY="4"
+                  orient="auto"
+                >
+                  <path d="M0,0 L8,4 L0,8" fill={color} />
+                </marker>
+              </defs>
+
+              <line
+                x1={from.x}
+                y1={from.y}
+                x2={to.x}
+                y2={to.y}
+                stroke={color}
+                strokeWidth={2}
+                markerEnd="url(#arrow)"
+              />
+
+              {/* amount label */}
+              <text
+                x={(from.x + to.x) / 2}
+                y={(from.y + to.y) / 2}
+                fill={color}
+                fontSize={12}
+              >
+                ₹{s.amount.toFixed(0)}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* ==== DRAW USERS ==== */}
+        {positioned.map((m, i) => (
+          <g key={m.user_id}>
+            <circle
+              cx={m.x}
+              cy={m.y}
+              r={22}
+              fill={m.user_id === currentUserId ? "#4CAF50" : "#2196F3"}
+              stroke="#000"
+              strokeWidth={1}
+            />
+
+            <text
+              x={m.x}
+              y={m.y - 28}
+              textAnchor="middle"
+              fontSize={18}
+            >
+              {getEmoji(i)}
+            </text>
+
+            <text
+              x={m.x}
+              y={m.y + 4}
+              fill="white"
+              textAnchor="middle"
+              fontSize={12}
+            >
+              {getLabel(m.user_id)}
+            </text>
+          </g>
+        ))}
+      </svg>
+
+      <p>
+        <small>
+          🟢 Green → money received • 🔴 Red → you pay
+        </small>
+      </p>
+    </div>
+  );
+}
+
+
+
+
+import React from "react";
+
+interface Settlement {
+  from: string;
+  to: string;
+  amount: number;
+}
+
+interface Props {
+  settlements: Settlement[];
+  currentUser: any;
+  markPaid: (s: Settlement) => void;
+  showName: (uid: string) => string;
+}
+
+export default function SettlementsTable({
+  settlements,
+  currentUser,
+  markPaid,
+  showName
+}: Props) {
+  return (
+    <div>
+      <hr />
+      <h3>Who should pay whom</h3>
+
+      <table border={1} cellPadding={5}>
+        <thead>
+          <tr>
+            <th>From</th>
+            <th>To</th>
+            <th>Amount</th>
+            <th></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {settlements.map((s) => (
+            <tr key={s.from + s.to}>
+              <td>{showName(s.from)}</td>
+              <td>{showName(s.to)}</td>
+              <td>₹{s.amount.toFixed(2)}</td>
+
+              <td>
+                {s.from === currentUser?.id && (
+                  <button onClick={() => markPaid(s)}>
+                    Mark Paid
+                  </button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+
+
+import React from "react";
+
+interface Props {
+  splits: { user_id: string; percent: number }[];
+  setSplits: (arr: { user_id: string; percent: number }[]) => void;
+  currentUser: any;
+  showName: (uid: string) => string;
+}
+
+export default function SplitSliders({
+  splits,
+  setSplits,
+  currentUser,
+  showName
+}: Props) {
+  return (
+    <div>
+      <hr />
+      <h3>Percentages (total must equal 100%)</h3>
+
+      {splits.map((s, i) => (
+        <div key={s.user_id}>
+          <b>{showName(s.user_id)}</b>
+
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={s.percent}
+            onChange={(e) => {
+              const copy = [...splits];
+              copy[i].percent = Number(e.target.value);
+              setSplits(copy);
+            }}
+          />
+
+          &nbsp;{s.percent}%
+        </div>
+      ))}
+
+      <p>
+        <b>
+          Total: {splits.reduce((s, x) => s + x.percent, 0).toFixed(2)}%
+        </b>
+      </p>
+    </div>
+  );
+}
