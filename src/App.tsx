@@ -15,21 +15,59 @@ import Friends from "./pages/Friends";
 function App() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [profileComplete, setProfileComplete] = useState(false);
+const [checkingProfile, setCheckingProfile] = useState(true);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
-      setLoading(false);
+ useEffect(() => {
+  checkSession();
+
+  const { data: { subscription } } =
+    supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        checkProfileCompletion(session.user.id);
+      } else {
+        setLoading(false);
+        setCheckingProfile(false);
+      }
     });
 
-    const { data: { subscription } } =
-      supabase.auth.onAuthStateChange((_event, session) => {
-        setUser(session?.user ?? null);
-        setLoading(false);
-      });
+  return () => subscription.unsubscribe();
+}, []);
+const checkSession = async () => {
+  const { data } = await supabase.auth.getSession();
+  setUser(data.session?.user ?? null);
+  
+  if (data.session?.user) {
+    await checkProfileCompletion(data.session.user.id);
+  }
+  
+  setLoading(false);
+  setCheckingProfile(false);
+};
 
-    return () => subscription.unsubscribe();
-  }, []);
+const checkProfileCompletion = async (userId: string) => {
+  try {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("name, phone, upi_id")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const isComplete = !!(
+      profile?.name && 
+      profile?.phone && 
+      profile?.upi_id
+    );
+
+    setProfileComplete(isComplete);
+  } catch (error) {
+    console.error("Error checking profile:", error);
+    setProfileComplete(false);
+  } finally {
+    setCheckingProfile(false);
+  }
+};
 
   const login = async () => {
     await supabase.auth.signInWithOAuth({
@@ -100,28 +138,74 @@ function App() {
 
   return (
     <>
-      {user && <Navbar />}
+      {user && profileComplete && <Navbar />}
 
       <Routes>
-  <Route
-    path="/"
-    element={user ? <Navigate to="/home" /> : <VyayaLoginPage login={login} />}
-  />
+  <Route path="/" element={<Navigate to="/home" replace />} />
 
   <Route
     path="/home"
-    element={user ? <Home /> : <Navigate to="/" />}
+    element={
+      !user ? (
+        <VyayaLoginPage login={login} />
+      ) : !profileComplete ? (
+        <Navigate to="/profile" replace />
+      ) : (
+        <Home />
+      )
+    }
   />
 
-  <Route path="/profile" element={user ? <Profile /> : <Navigate to="/" />} />
-  <Route path="/create-group" element={user ? <CreateGroup /> : <Navigate to="/" />} />
-  <Route path="/personal" element={user ? <Personal /> : <Navigate to="/" />} />
-  <Route path="/join-group" element={user ? <JoinGroup /> : <Navigate to="/" />} />
-  <Route path="/group/:id" element={user ? <Group /> : <Navigate to="/" />} />
-  <Route path="/onboarding" element={user ? <Onboarding /> : <Navigate to="/" />} />
-  <Route path="/friends" element={user ? <Friends /> : <Navigate to="/" />} />
+  <Route 
+    path="/profile" 
+    element={
+      user ? (
+        <Profile 
+          isOnboarding={!profileComplete} 
+          onComplete={() => setProfileComplete(true)}
+        />
+      ) : (
+        <Navigate to="/home" />
+      )
+    } 
+  />
 
-  <Route path="*" element={<Navigate to="/" />} />
+  <Route 
+    path="/create-group" 
+    element={
+      user && profileComplete ? <CreateGroup /> : <Navigate to={user ? "/profile" : "/home"} />
+    } 
+  />
+  
+  <Route 
+    path="/personal" 
+    element={
+      user && profileComplete ? <Personal /> : <Navigate to={user ? "/profile" : "/home"} />
+    } 
+  />
+  
+  <Route 
+    path="/join-group" 
+    element={
+      user && profileComplete ? <JoinGroup /> : <Navigate to={user ? "/profile" : "/home"} />
+    } 
+  />
+  
+  <Route 
+    path="/group/:id" 
+    element={
+      user && profileComplete ? <Group /> : <Navigate to={user ? "/profile" : "/home"} />
+    } 
+  />
+  
+  <Route 
+    path="/friends" 
+    element={
+      user && profileComplete ? <Friends /> : <Navigate to={user ? "/profile" : "/home"} />
+    } 
+  />
+
+  <Route path="*" element={<Navigate to="/home" />} />
 </Routes>
 
     </>

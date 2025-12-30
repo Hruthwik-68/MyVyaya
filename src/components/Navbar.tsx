@@ -28,7 +28,7 @@ export default function Navbar() {
     >
       {/* LEFT — LOGO */}
       <div style={{ fontSize: 18, fontWeight: 700 }}>
-        💸 Money Tracker
+        💸 My Vyaya
       </div>
 
       {/* DESKTOP MENU */}

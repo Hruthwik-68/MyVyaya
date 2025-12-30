@@ -65,7 +65,7 @@ export default function Home() {
       {/* Header */}
       <div className="card" style={{ marginBottom: 20 }}>
         <h1 style={{ margin: 0, fontSize: 28, color: "#1f2937" }}>
-          💰 Money Tracker
+          💰 My Vyaya
         </h1>
         <p style={{ margin: "8px 0 0", color: "#6b7280", fontSize: 14 }}>
           Welcome back, {user?.email}
