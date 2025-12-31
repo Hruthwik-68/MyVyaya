@@ -9,7 +9,8 @@ import { supabase } from "../supabase";
 // ← NEW: Import all new components
 import CollapsibleSection from "../components/CollapsibleSection";
 import AdvancedFilters from "../components/AdvancedFilters";
-import type { FilterOptions, SortOptions } from "../components/AdvancedFilters";import GroupInfoPanel from "../components/GroupInfoPanel";
+import type { FilterOptions, SortOptions } from "../components/AdvancedFilters";
+import GroupInfoPanel from "../components/GroupInfoPanel";
 import CustomBudgetCategories from "../components/CustomBudgetCategories";
 
 // Existing components
