@@ -114,3 +114,215 @@ button.secondary {
     grid-template-columns: 1fr;
   }
 }
+/* ============================================ */
+/* NAVBAR ANIMATIONS & STYLES */
+/* Add this to src/index.css or src/App.css */
+/* ============================================ */
+
+/* ============================================ */
+/* NAVBAR LOGO ANIMATIONS */
+/* ============================================ */
+
+/* Logo hover effect - lifts up and scales */
+.navbar-logo-link:hover .navbar-logo {
+  transform: translateY(-3px) scale(1.05);
+  filter: drop-shadow(0 4px 8px rgba(77, 171, 255, 0.4)) !important;
+}
+
+.navbar-logo-link:active .navbar-logo {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Desktop & Laptop (1024px and above) */
+/* ============================================ */
+/* NAVBAR LOGO - PERFECT SIZE (50px) */
+/* Replace .navbar-logo section in index.css */
+/* Not too big, not too small - just right! */
+/* ============================================ */
+
+/* Desktop & Laptop (1024px and above) */
+.navbar-logo {
+  height: 50px !important;  /* Was 45px → Now 50px (+11% - perfect!) */
+  max-width: 200px !important;  /* Was 180px → Now 200px */
+  margin: -3px 0 !important;  /* Small negative margin to fit in navbar */
+}
+
+/* Tablet (768px - 1023px) */
+@media (max-width: 1023px) and (min-width: 768px) {
+  .navbar-logo {
+    height: 46px !important;  /* Was 40px → Now 46px */
+    max-width: 185px !important;
+    margin: -3px 0 !important;
+  }
+}
+
+/* Mobile (481px - 767px) */
+@media (max-width: 767px) and (min-width: 481px) {
+  .navbar-logo {
+    height: 42px !important;  /* Was 35px → Now 42px */
+    max-width: 165px !important;
+    margin: -3px 0 !important;
+  }
+}
+
+/* Small Mobile (below 480px) */
+@media (max-width: 480px) {
+  .navbar-logo {
+    height: 38px !important;  /* Was 32px → Now 38px */
+    max-width: 145px !important;
+    margin: -2px 0 !important;
+  }
+}
+
+/* Extra Small Mobile (below 360px) */
+@media (max-width: 359px) {
+  .navbar-logo {
+    height: 34px !important;  /* Was 28px → Now 34px */
+    max-width: 130px !important;
+    margin: -2px 0 !important;
+  }
+}
+
+/* ============================================ */
+/* NAV LINKS ANIMATIONS (Home, Profile) */
+/* ============================================ */
+
+/* Underline animation on hover */
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #4dabff, #00d4ff);
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+/* Hover effect - color change */
+.nav-link:hover {
+  color: #4dabff !important;
+  transform: translateY(-2px);
+}
+
+.nav-link:active {
+  transform: translateY(0);
+}
+
+/* ============================================ */
+/* LOGOUT BUTTON ANIMATIONS */
+/* ============================================ */
+
+/* Hover effect - lift and glow */
+.logout-btn:hover {
+  background: #ff4757 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(230, 57, 70, 0.4) !important;
+}
+
+/* Click effect - shrink */
+.logout-btn:active {
+  transform: translateY(0) scale(0.95);
+}
+
+/* Pulse animation on load */
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+  50% {
+    box-shadow: 0 4px 8px rgba(230, 57, 70, 0.3);
+  }
+}
+
+.logout-btn {
+  animation: pulse 3s ease-in-out infinite;
+}
+
+/* ============================================ */
+/* HOME PAGE LOGO - RESPONSIVE */
+/* ============================================ */
+
+/* Desktop & Laptop (1024px and above) */
+.home-logo {
+  height: 80px !important;
+  max-width: 300px !important;
+}
+
+/* Tablet (768px - 1023px) */
+@media (max-width: 1023px) and (min-width: 768px) {
+  .home-logo {
+    height: 70px !important;
+    max-width: 260px !important;
+  }
+}
+
+/* Mobile (481px - 767px) */
+@media (max-width: 767px) and (min-width: 481px) {
+  .home-logo {
+    height: 60px !important;
+    max-width: 220px !important;
+  }
+}
+
+/* Small Mobile (below 480px) */
+@media (max-width: 480px) {
+  .home-logo {
+    height: 50px !important;
+    max-width: 180px !important;
+  }
+}
+
+/* Extra Small Mobile (below 360px) */
+@media (max-width: 359px) {
+  .home-logo {
+    height: 45px !important;
+    max-width: 150px !important;
+  }
+}
+
+/* ============================================ */
+/* LOGIN PAGE LOGO - RESPONSIVE (App.tsx) */
+/* ============================================ */
+
+/* Desktop & Laptop (1024px and above) */
+.login-logo {
+  width: 280px !important;
+  max-width: 90% !important;
+}
+
+/* Tablet (768px - 1023px) */
+@media (max-width: 1023px) and (min-width: 768px) {
+  .login-logo {
+    width: 240px !important;
+    max-width: 85% !important;
+  }
+}
+
+/* Mobile (481px - 767px) */
+@media (max-width: 767px) and (min-width: 481px) {
+  .login-logo {
+    width: 200px !important;
+    max-width: 80% !important;
+  }
+}
+
+/* Small Mobile (below 480px) */
+@media (max-width: 480px) {
+  .login-logo {
+    width: 180px !important;
+    max-width: 75% !important;
+  }
+}
+
+/* Extra Small Mobile (below 360px) */
+@media (max-width: 359px) {
+  .login-logo {
+    width: 160px !important;
+    max-width: 70% !important;
+  }
+}

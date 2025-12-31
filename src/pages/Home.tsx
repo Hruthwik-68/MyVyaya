@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import { useNavigate } from "react-router-dom";
-
+import MyVyayaLogo from "../assets/MyVyaya.png"; // ← ADD THIS LINE
 export default function Home() {
   const navigate = useNavigate();
 
@@ -63,10 +63,8 @@ export default function Home() {
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px" }}>
       {/* Header */}
-      <div className="card" style={{ marginBottom: 20 }}>
-        <h1 style={{ margin: 0, fontSize: 28, color: "#1f2937" }}>
-          💰 My Vyaya
-        </h1>
+     <div className="card" style={{ marginBottom: 20 }}>
+       
         <p style={{ margin: "8px 0 0", color: "#6b7280", fontSize: 14 }}>
           Welcome back, {user?.email}
         </p>
@@ -130,6 +128,19 @@ export default function Home() {
             }}
           >
             👥 Friends
+          </button>
+
+          {/* ← NEW: TOOK/GAVE BUTTON */}
+          <button
+            className="btn-primary"
+            onClick={() => navigate("/loans")}
+            style={{
+              padding: "14px 20px",
+              fontSize: 16,
+              background: "linear-gradient(135deg, #f59e0b, #d97706)",
+            }}
+          >
+            💰 TOOK / GAVE
           </button>
 
           <button
@@ -258,3 +269,5 @@ export default function Home() {
     </div>
   );
 }
+
+

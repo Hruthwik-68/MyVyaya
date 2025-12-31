@@ -1,4 +1,5 @@
 import { useState } from "react";
+import MyVyayaPhotoroom from "../assets/MyVyaya-Photoroom.png";
 import { Link, useLocation } from "react-router-dom";
 import { supabase } from "../supabase";
 
@@ -26,12 +27,34 @@ export default function Navbar() {
         zIndex: 999,
       }}
     >
-      {/* LEFT — LOGO */}
-      <div style={{ fontSize: 18, fontWeight: 700 }}>
-        💸 My Vyaya
-      </div>
+      {/* LEFT — LOGO (NO WHITE BACKGROUND) */}
+      <Link 
+        to="/home" 
+        style={{ 
+          textDecoration: 'none', 
+          display: 'flex', 
+          alignItems: 'center',
+          transition: 'transform 0.3s ease'
+        }}
+        className="navbar-logo-link"
+      >
+        <img 
+          src={MyVyayaPhotoroom} 
+          alt="My Vyaya" 
+          className="navbar-logo"
+          style={{ 
+            height: '45px',
+            width: 'auto',
+            maxWidth: '180px',
+            objectFit: 'contain',
+            display: 'block',
+            filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2))',
+            transition: 'all 0.3s ease'
+          }} 
+        />
+      </Link>
 
-      {/* DESKTOP MENU */}
+      {/* DESKTOP MENU WITH ANIMATIONS */}
       <div
         className="desktop-menu"
         style={{
@@ -42,10 +65,14 @@ export default function Navbar() {
       >
         <Link
           to="/home"
+          className="nav-link"
           style={{
             textDecoration: "none",
             color: location.pathname === "/home" ? "#4dabff" : "white",
             fontWeight: 500,
+            position: 'relative',
+            padding: '8px 0',
+            transition: 'all 0.3s ease',
           }}
         >
           Home
@@ -53,10 +80,14 @@ export default function Navbar() {
 
         <Link
           to="/profile"
+          className="nav-link"
           style={{
             textDecoration: "none",
             color: location.pathname === "/profile" ? "#4dabff" : "white",
             fontWeight: 500,
+            position: 'relative',
+            padding: '8px 0',
+            transition: 'all 0.3s ease',
           }}
         >
           Profile
@@ -64,13 +95,17 @@ export default function Navbar() {
 
         <button
           onClick={logout}
+          className="logout-btn"
           style={{
             background: "#e63946",
             border: "none",
-            padding: "6px 12px",
+            padding: "8px 16px",
             borderRadius: 8,
             color: "white",
             cursor: "pointer",
+            fontWeight: 500,
+            transition: 'all 0.3s ease',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
           }}
         >
           Logout

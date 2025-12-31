@@ -1,11 +1,14 @@
-
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
-import WishlistModal from ".././components/WishlistModal";
-import ReceiptScanner from ".././components/ReceiptScanner";  // ← ADD THIS LINE
 
+// ← NEW: Import all new components
+import CollapsibleSection from "../components/CollapsibleSection";
+import AdvancedFilters from "../components/AdvancedFilters";
+import type { FilterOptions, SortOptions } from "../components/AdvancedFilters";
+import CustomBudgetCategories from "../components/CustomBudgetCategories";
+import WishlistModal from "../components/WishlistModal";
+import ReceiptScanner from "../components/ReceiptScanner";
 
 // Budget Categories
 const EXPENSE_CATEGORIES = [
@@ -55,8 +58,14 @@ export default function Personal() {
   const [wishlistItems, setWishlistItems] = useState<any[]>([]);
   const [showWishlistModal, setShowWishlistModal] = useState(false);
 
-  const [showReceiptScanner, setShowReceiptScanner] = useState(false);  // ← ADD THIS LINE
+  const [showReceiptScanner, setShowReceiptScanner] = useState(false);
 
+  // ← NEW: Advanced Filter & Sort States
+  const [filters, setFilters] = useState<FilterOptions>({});
+  const [sortOptions, setSortOptions] = useState<SortOptions>({ field: "date", direction: "desc" });
+  
+  // ← NEW: Custom Categories State
+  const [customCategories, setCustomCategories] = useState<any[]>([]);
 
   // Load user and personal tracker
   const loadUser = async () => {
@@ -80,6 +89,7 @@ export default function Personal() {
       loadExpenses(existing.id);
       loadBudgets(existing.id);
       loadWishlist(existing.id);
+      loadCustomCategories(existing.id);
     } else {
       const { data: newTracker } = await supabase
         .from("trackers")
@@ -96,6 +106,7 @@ export default function Personal() {
         loadExpenses(newTracker.id);
         loadBudgets(newTracker.id);
         loadWishlist(newTracker.id);
+        loadCustomCategories(newTracker.id);
       }
     }
   };
@@ -137,6 +148,28 @@ export default function Personal() {
     setWishlistItems(data || []);
   };
 
+  // ← NEW: LOAD CUSTOM CATEGORIES
+  const loadCustomCategories = async (tId: string) => {
+    const { data } = await supabase
+      .from("custom_categories")
+      .select("*")
+      .eq("tracker_id", tId);
+    
+    setCustomCategories(data || []);
+  };
+
+  // ← NEW: MERGE DEFAULT + CUSTOM CATEGORIES (MEMOIZED)
+  const allCategories = useMemo(() => {
+    return [
+      ...EXPENSE_CATEGORIES,
+      ...customCategories.map(c => ({
+        value: c.name,
+        icon: c.icon,
+        color: c.color
+      }))
+    ];
+  }, [customCategories]);
+
   useEffect(() => {
     loadUser();
   }, []);
@@ -148,7 +181,6 @@ export default function Personal() {
   const applyFilters = () => {
     let filtered = [...expenses];
 
-    // Filter by month/year
     if (filterMonth >= 0 && filterYear) {
       filtered = filtered.filter((exp) => {
         const expDate = new Date(exp.date);
@@ -159,7 +191,6 @@ export default function Personal() {
       });
     }
 
-    // Filter by date range
     if (dateFrom && dateTo) {
       filtered = filtered.filter((exp) => {
         const expDate = new Date(exp.date);
@@ -171,6 +202,54 @@ export default function Personal() {
 
     setFilteredExpenses(filtered);
   };
+
+  // ← NEW: APPLY ADVANCED FILTERS & SORTING (OPTIMIZED with useMemo)
+  const filteredAndSortedExpenses = useMemo(() => {
+    let result = [...filteredExpenses];
+
+    // Amount filters
+    if (filters.minAmount !== undefined) {
+      result = result.filter(exp => Number(exp.amount) >= filters.minAmount!);
+    }
+    if (filters.maxAmount !== undefined) {
+      result = result.filter(exp => Number(exp.amount) <= filters.maxAmount!);
+    }
+
+    // Category filter
+    if (filters.selectedCategories && filters.selectedCategories.length > 0) {
+      result = result.filter(exp => filters.selectedCategories!.includes(exp.category));
+    }
+
+    // Sorting
+    result.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortOptions.field) {
+        case "date":
+          comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+          break;
+        case "amount":
+          comparison = Number(a.amount) - Number(b.amount);
+          break;
+        case "category":
+          comparison = (a.category || "").localeCompare(b.category || "");
+          break;
+      }
+      
+      return sortOptions.direction === "asc" ? comparison : -comparison;
+    });
+
+    return result;
+  }, [filteredExpenses, filters, sortOptions]);
+
+  // ← NEW: MEMOIZED CALLBACKS
+  const handleFilterChange = useCallback((newFilters: FilterOptions) => {
+    setFilters(newFilters);
+  }, []);
+
+  const handleSortChange = useCallback((newSort: SortOptions) => {
+    setSortOptions(newSort);
+  }, []);
 
   const addExpense = async () => {
     if (!amount) return alert("Enter amount");
@@ -247,7 +326,12 @@ export default function Personal() {
     alert(`✓ Budget saved for ${cat}`);
   };
 
-  const getCategorySpending = (forMonth?: number, forYear?: number) => {
+  // CONTINUE IN PART 2...
+
+  // PART 2: MEMOIZED CALCULATIONS + UI RENDERING
+
+  // ← NEW: MEMOIZED CATEGORY SPENDING
+  const getCategorySpending = useCallback((forMonth?: number, forYear?: number) => {
     const spending: { [key: string]: number } = {};
     const targetMonth = forMonth ?? filterMonth;
     const targetYear = forYear ?? filterYear;
@@ -263,11 +347,11 @@ export default function Personal() {
       }
     });
     return spending;
-  };
+  }, [expenses, filterMonth, filterYear]);
 
-  const categorySpending = getCategorySpending();
+  const categorySpending = useMemo(() => getCategorySpending(), [getCategorySpending]);
 
-  const getBudgetStatus = (cat: string) => {
+  const getBudgetStatus = useCallback((cat: string) => {
     const budget = budgets.find((b) => b.category === cat);
     if (!budget) return null;
 
@@ -289,19 +373,26 @@ export default function Personal() {
     }
 
     return { spent, limit, percentage, status, color };
-  };
+  }, [budgets, categorySpending]);
 
-  const totalSpent = Object.values(categorySpending).reduce((sum, amt) => sum + amt, 0);
-  const totalBudget = budgets.reduce((sum, b) => sum + Number(b.monthly_limit), 0);
+  const totalSpent = useMemo(() => 
+    Object.values(categorySpending).reduce((sum, amt) => sum + amt, 0), 
+    [categorySpending]
+  );
+  
+  const totalBudget = useMemo(() => 
+    budgets.reduce((sum, b) => sum + Number(b.monthly_limit), 0), 
+    [budgets]
+  );
 
-  // Analytics calculations
-  const getTopExpenses = () => {
-    return [...filteredExpenses]
+  // Analytics calculations (MEMOIZED)
+  const getTopExpenses = useMemo(() => {
+    return [...filteredAndSortedExpenses]
       .sort((a, b) => Number(b.amount) - Number(a.amount))
       .slice(0, 5);
-  };
+  }, [filteredAndSortedExpenses]);
 
-  const getMonthlyTrend = () => {
+  const getMonthlyTrend = useMemo(() => {
     const trend: { [key: string]: number } = {};
     expenses.forEach((exp) => {
       const date = new Date(exp.date);
@@ -311,11 +402,11 @@ export default function Personal() {
     return Object.entries(trend)
       .sort(([a], [b]) => a.localeCompare(b))
       .slice(-6);
-  };
+  }, [expenses]);
 
-  const exportToCSV = () => {
+  const exportToCSV = useCallback(() => {
     const headers = ["Date", "Description", "Category", "Amount"];
-    const rows = filteredExpenses.map((exp) => [
+    const rows = filteredAndSortedExpenses.map((exp) => [
       new Date(exp.date).toLocaleDateString(),
       exp.description || "No description",
       exp.category || "General",
@@ -329,22 +420,20 @@ export default function Personal() {
     a.href = url;
     a.download = `expenses-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
-  };
+  }, [filteredAndSortedExpenses]);
 
-  const avgDaily = filteredExpenses.length > 0
-    ? totalSpent / new Date(filterYear, filterMonth + 1, 0).getDate()
-    : 0;
+  const avgDaily = useMemo(() => {
+    return filteredAndSortedExpenses.length > 0
+      ? totalSpent / new Date(filterYear, filterMonth + 1, 0).getDate()
+      : 0;
+  }, [filteredAndSortedExpenses.length, totalSpent, filterYear, filterMonth]);
 
   const isMobile = window.innerWidth < 640;
-
-  // CONTINUE IN PART 2...
-  // CONTINUED FROM PART 1...
 
   return (
     <div style={{ padding: isMobile ? 10 : 20, maxWidth: 1400, margin: "0 auto" }}>
       {/* Header */}
       <div
-        className="card animate-fadeInUp"
         style={{
           marginBottom: 20,
           display: "flex",
@@ -352,6 +441,10 @@ export default function Personal() {
           alignItems: isMobile ? "flex-start" : "center",
           flexDirection: isMobile ? "column" : "row",
           gap: 15,
+          padding: 20,
+          backgroundColor: "#fff",
+          borderRadius: 10,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
         }}
       >
         <h1 style={{ margin: 0, fontSize: isMobile ? 22 : 28 }}>💰 Personal Expenses</h1>
@@ -370,7 +463,7 @@ export default function Personal() {
               flex: isMobile ? 1 : "none",
             }}
           >
-            📈 {isMobile ? "" : showAnalytics ? "Hide" : "Show"} Analytics
+            📈 Analytics
           </button>
           <button
             onClick={() => setShowWishlistModal(true)}
@@ -388,22 +481,6 @@ export default function Personal() {
           >
             🎁 Wishlist
           </button>
-          <button
-  onClick={() => setShowReceiptScanner(true)}
-  style={{
-    background: "linear-gradient(135deg, #f59e0b, #d97706)",
-    color: "white",
-    border: "none",
-    padding: isMobile ? "10px 12px" : "10px 15px",
-    borderRadius: 8,
-    cursor: "pointer",
-    fontWeight: 600,
-    fontSize: isMobile ? 13 : 14,
-    flex: isMobile ? 1 : "none",
-  }}
->
-  📸 Scan
-</button>
           <button
             onClick={() => setShowBudgetModal(true)}
             style={{
@@ -436,11 +513,13 @@ export default function Personal() {
 
       {/* Monthly Summary */}
       <div
-        className="card animate-fadeInUp"
         style={{
           background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
           color: "white",
           marginBottom: 20,
+          padding: 20,
+          borderRadius: 10,
+          boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
         }}
       >
         <div
@@ -478,38 +557,39 @@ export default function Personal() {
         </div>
       </div>
 
-      {/* Analytics Dashboard */}
-      {showAnalytics && (
-        <div className="card animate-fadeInUp" style={{ marginBottom: 20 }}>
-          <h3>📊 Analytics Dashboard</h3>
+      {/* ← NEW: ADVANCED FILTERS */}
+      <AdvancedFilters
+        currentUserId={currentUser?.id}
+        members={[{ user_id: currentUser?.id }]} // Personal has only one user
+        categories={allCategories}
+        showName={(uid) => "You"}
+        onFilterChange={handleFilterChange}
+        onSortChange={handleSortChange}
+      />
 
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: 20, marginTop: 20 }}>
+      {/* CONTINUE IN PART 3... */}
+
+
+      {/* ← NEW: COLLAPSIBLE ANALYTICS */}
+      {showAnalytics && (
+        <CollapsibleSection title="Analytics Dashboard" icon="📊" defaultOpen={true}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: 20 }}>
             {/* Category Breakdown */}
             <div>
               <h4>Category Breakdown</h4>
               {Object.entries(categorySpending)
                 .sort(([, a], [, b]) => (b as number) - (a as number))
                 .map(([cat, amount]) => {
-                  const catInfo = EXPENSE_CATEGORIES.find((c) => c.value === cat);
+                  const catInfo = allCategories.find((c) => c.value === cat);
                   const percentage = totalSpent > 0 ? ((amount as number) / totalSpent) * 100 : 0;
                   return (
                     <div key={cat} style={{ marginBottom: 12 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                        <span>
-                          {catInfo?.icon} {cat}
-                        </span>
-                        <span style={{ fontWeight: "bold" }}>
-                          ₹{(amount as number).toFixed(0)} ({percentage.toFixed(1)}%)
-                        </span>
+                        <span>{catInfo?.icon} {cat}</span>
+                        <span style={{ fontWeight: "bold" }}>₹{(amount as number).toFixed(0)} ({percentage.toFixed(1)}%)</span>
                       </div>
-                      <div className="progress-container">
-                        <div
-                          className="progress-bar"
-                          style={{
-                            width: `${percentage}%`,
-                            background: catInfo?.color || "#a29bfe",
-                          }}
-                        />
+                      <div style={{ height: 10, backgroundColor: "#e0e0e0", borderRadius: 5, overflow: "hidden" }}>
+                        <div style={{ width: `${percentage}%`, height: "100%", background: catInfo?.color || "#a29bfe" }} />
                       </div>
                     </div>
                   );
@@ -519,49 +599,20 @@ export default function Personal() {
             {/* Top 5 Expenses */}
             <div>
               <h4>Top 5 Expenses</h4>
-              {getTopExpenses().map((exp, idx) => {
-                const catInfo = EXPENSE_CATEGORIES.find((c) => c.value === exp.category);
+              {getTopExpenses.map((exp, idx) => {
+                const catInfo = allCategories.find((c) => c.value === exp.category);
                 return (
-                  <div
-                    key={exp.id}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: 12,
-                      backgroundColor: "#f9fafb",
-                      borderRadius: 8,
-                      marginBottom: 8,
-                    }}
-                  >
+                  <div key={exp.id} style={{ display: "flex", justifyContent: "space-between", padding: 12, backgroundColor: "#f9fafb", borderRadius: 8, marginBottom: 8 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div
-                        style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: "50%",
-                          background: "linear-gradient(135deg, #667eea, #764ba2)",
-                          color: "white",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: 12,
-                          fontWeight: "bold",
-                        }}
-                      >
+                      <div style={{ width: 24, height: 24, borderRadius: "50%", background: "linear-gradient(135deg, #667eea, #764ba2)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: "bold" }}>
                         {idx + 1}
                       </div>
                       <div>
-                        <div style={{ fontWeight: 600 }}>
-                          {catInfo?.icon} {exp.description || "No description"}
-                        </div>
-                        <div style={{ fontSize: 12, color: "#666" }}>
-                          {new Date(exp.date).toLocaleDateString()}
-                        </div>
+                        <div style={{ fontWeight: 600 }}>{catInfo?.icon} {exp.description || "No description"}</div>
+                        <div style={{ fontSize: 12, color: "#666" }}>{new Date(exp.date).toLocaleDateString()}</div>
                       </div>
                     </div>
-                    <div style={{ fontWeight: "bold", color: "#dc2626" }}>
-                      ₹{Number(exp.amount).toFixed(0)}
-                    </div>
+                    <div style={{ fontWeight: "bold", color: "#dc2626" }}>₹{Number(exp.amount).toFixed(0)}</div>
                   </div>
                 );
               })}
@@ -572,142 +623,65 @@ export default function Personal() {
           <div style={{ marginTop: 30 }}>
             <h4>Monthly Trend (Last 6 Months)</h4>
             <div style={{ display: "flex", gap: 10, overflowX: "auto" }}>
-              {getMonthlyTrend().map(([month, amount]) => {
-                const maxAmount = Math.max(...getMonthlyTrend().map(([, amt]) => amt as number));
+              {getMonthlyTrend.map(([month, amount]) => {
+                const maxAmount = Math.max(...getMonthlyTrend.map(([, amt]) => amt as number));
                 const height = ((amount as number) / maxAmount) * 150;
                 return (
                   <div key={month} style={{ textAlign: "center", minWidth: 80 }}>
                     <div style={{ fontSize: 12, marginBottom: 8 }}>{month}</div>
-                    <div
-                      style={{
-                        height: 150,
-                        display: "flex",
-                        alignItems: "flex-end",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 60,
-                          height: height,
-                          background: "linear-gradient(180deg, #667eea, #764ba2)",
-                          borderRadius: "8px 8px 0 0",
-                          transition: "height 0.3s",
-                        }}
-                      />
+                    <div style={{ height: 150, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+                      <div style={{ width: 60, height: height, background: "linear-gradient(180deg, #667eea, #764ba2)", borderRadius: "8px 8px 0 0" }} />
                     </div>
-                    <div style={{ fontSize: 12, fontWeight: "bold", marginTop: 8 }}>
-                      ₹{(amount as number).toFixed(0)}
-                    </div>
+                    <div style={{ fontSize: 12, fontWeight: "bold", marginTop: 8 }}>₹{(amount as number).toFixed(0)}</div>
                   </div>
                 );
               })}
             </div>
           </div>
-        </div>
+        </CollapsibleSection>
       )}
 
-      {/* CONTINUE IN PART 3... */}
-      {/* CONTINUED FROM PART 2... */}
-
-      {/* Budget Overview - ON MAIN PAGE */}
+      {/* Budget Overview */}
       {budgets.length > 0 && (
-        <div className="card animate-fadeInUp" style={{ marginBottom: 20 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 15 }}>
-            <h3 style={{ margin: 0 }}>
-              📊 Budget Overview - {new Date(filterYear, filterMonth).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-            </h3>
-            <button
-              onClick={() => setShowBudgetModal(true)}
-              style={{
-                background: "linear-gradient(135deg, #7c3aed, #a855f7)",
-                color: "white",
-                border: "none",
-                padding: "8px 16px",
-                borderRadius: 5,
-                cursor: "pointer",
-                fontWeight: 600,
-                fontSize: 13,
-              }}
-            >
-              ⚙️ Manage
-            </button>
-          </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(250px, 1fr))",
-              gap: 15,
-            }}
-          >
+        <CollapsibleSection title={`Budget Overview - ${new Date(filterYear, filterMonth).toLocaleDateString("en-US", { month: "long", year: "numeric" })}`} icon="📊" defaultOpen={true}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(250px, 1fr))", gap: 15 }}>
             {budgets.map((budget) => {
               const cat = budget.category;
-              const catInfo = EXPENSE_CATEGORIES.find((c) => c.value === cat);
+              const catInfo = allCategories.find((c) => c.value === cat);
               const status = getBudgetStatus(cat);
               if (!status) return null;
 
               return (
-                <div
-                  key={cat}
-                  className="card"
-                  style={{
-                    border: `2px solid ${status.color}`,
-                    padding: 15,
-                  }}
-                >
+                <div key={cat} style={{ border: `2px solid ${status.color}`, padding: 15, borderRadius: 8, backgroundColor: "#fff" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
-                      <div style={{ fontSize: 18, fontWeight: "bold" }}>
-                        {catInfo?.icon} {cat}
-                      </div>
-                      <div style={{ fontSize: 14, color: "#666", marginTop: 4 }}>
-                        ₹{status.spent.toFixed(0)} / ₹{status.limit.toFixed(0)}
-                      </div>
+                      <div style={{ fontSize: 18, fontWeight: "bold" }}>{catInfo?.icon} {cat}</div>
+                      <div style={{ fontSize: 14, color: "#666", marginTop: 4 }}>₹{status.spent.toFixed(0)} / ₹{status.limit.toFixed(0)}</div>
                     </div>
-                    <div style={{ fontSize: 24, fontWeight: "bold", color: status.color }}>
-                      {status.percentage.toFixed(0)}%
-                    </div>
+                    <div style={{ fontSize: 24, fontWeight: "bold", color: status.color }}>{status.percentage.toFixed(0)}%</div>
                   </div>
-                  <div className="progress-container" style={{ marginTop: 10 }}>
-                    <div
-                      className="progress-bar"
-                      style={{
-                        width: `${Math.min(status.percentage, 100)}%`,
-                        backgroundColor: status.color,
-                      }}
-                    />
+                  <div style={{ marginTop: 10, backgroundColor: "#e0e0e0", height: 10, borderRadius: 5, overflow: "hidden" }}>
+                    <div style={{ width: `${Math.min(status.percentage, 100)}%`, height: "100%", backgroundColor: status.color }} />
                   </div>
                   <div style={{ marginTop: 8, fontSize: 12 }}>
-                    {status.status === "exceeded" && (
-                      <span style={{ color: "#dc2626" }}>
-                        🔴 Exceeded by ₹{(status.spent - status.limit).toFixed(0)}
-                      </span>
-                    )}
-                    {status.status === "critical" && (
-                      <span style={{ color: "#f97316" }}>🟠 {(100 - status.percentage).toFixed(0)}% left</span>
-                    )}
-                    {status.status === "warning" && (
-                      <span style={{ color: "#f7b731" }}>🟡 ₹{(status.limit - status.spent).toFixed(0)} left</span>
-                    )}
+                    {status.status === "exceeded" && <span style={{ color: "#dc2626" }}>🔴 Exceeded by ₹{(status.spent - status.limit).toFixed(0)}</span>}
+                    {status.status === "critical" && <span style={{ color: "#f97316" }}>🟠 {(100 - status.percentage).toFixed(0)}% left</span>}
+                    {status.status === "warning" && <span style={{ color: "#f7b731" }}>🟡 ₹{(status.limit - status.spent).toFixed(0)} left</span>}
                     {status.status === "on-track" && <span style={{ color: "#16a34a" }}>🟢 On track</span>}
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Add Expense Form */}
-      <div className="card animate-fadeInUp" style={{ marginBottom: 20 }}>
-        <h3>💸 Add Expense</h3>
-        
+      <CollapsibleSection title="Add Expense" icon="💸" defaultOpen={true}>
         {/* Wishlist Selector */}
         {wishlistItems.length > 0 && (
           <div style={{ marginBottom: 15 }}>
-            <label style={{ fontSize: 14, fontWeight: 600, marginBottom: 5, display: "block" }}>
-              📦 Or select from wishlist:
-            </label>
+            <label style={{ fontSize: 14, fontWeight: 600, marginBottom: 5, display: "block" }}>📦 Or select from wishlist:</label>
             <select
               onChange={(e) => {
                 const item = wishlistItems.find((i) => i.id === e.target.value);
@@ -719,13 +693,7 @@ export default function Personal() {
                   }
                 }
               }}
-              style={{
-                padding: "10px",
-                borderRadius: 5,
-                border: "1px solid #ddd",
-                fontSize: 14,
-                width: "100%",
-              }}
+              style={{ padding: "10px", borderRadius: 5, border: "1px solid #ddd", fontSize: 14, width: "100%" }}
             >
               <option value="">-- Select wishlist item --</option>
               {wishlistItems.map((item) => (
@@ -737,538 +705,174 @@ export default function Personal() {
           </div>
         )}
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "repeat(4, 1fr)",
-            gap: 15,
-            marginTop: 15,
-          }}
-        >
-          <input
-            type="number"
-            placeholder="Amount ₹"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-          />
-          <input
-            placeholder="Description"
-            value={desc}
-            onChange={(e) => setDesc(e.target.value)}
-          />
-          <select value={category} onChange={(e) => setCategory(e.target.value)}>
-            {EXPENSE_CATEGORIES.map((cat) => (
-              <option key={cat.value} value={cat.value}>
-                {cat.icon} {cat.value}
-              </option>
+        {/* Scan Button */}
+        <div style={{ marginBottom: 15 }}>
+          <button onClick={() => setShowReceiptScanner(true)} style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "white", border: "none", padding: "12px 20px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 14, width: "100%" }}>
+            📸 Scan Receipt to Auto-Fill
+          </button>
+        </div>
+
+        {/* Form Fields */}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4, 1fr)", gap: 15 }}>
+          <input type="number" placeholder="Amount ₹" value={amount} onChange={(e) => setAmount(e.target.value)} style={{ padding: "10px", borderRadius: 5, border: "1px solid #ddd" }} />
+          <input placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} style={{ padding: "10px", borderRadius: 5, border: "1px solid #ddd" }} />
+          <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ padding: "10px", borderRadius: 5, border: "1px solid #ddd" }}>
+            {allCategories.map((cat) => (
+              <option key={cat.value} value={cat.value}>{cat.icon} {cat.value}</option>
             ))}
           </select>
-          <button
-            className="btn-success"
-            disabled={loading}
-            onClick={addExpense}
-            style={{ padding: "10px 20px" }}
-          >
+          <button disabled={loading} onClick={addExpense} style={{ padding: "10px 20px", backgroundColor: loading ? "#ccc" : "#16a34a", color: "white", border: "none", borderRadius: 5, cursor: loading ? "not-allowed" : "pointer", fontWeight: 600 }}>
             {loading ? "Saving..." : "💾 Save"}
           </button>
         </div>
-      </div>
+      </CollapsibleSection>
 
-      {/* Filters & Export */}
-      <div className="card animate-fadeInUp" style={{ marginBottom: 20 }}>
+      {/* Expense Filters */}
+      <div style={{ backgroundColor: "#f8f9fa", border: "1px solid #dee2e6", borderRadius: 10, padding: 15, marginBottom: 20 }}>
         <div style={{ marginBottom: 15 }}>
-          <h3 style={{ margin: 0, marginBottom: 10 }}>📋 Recent Expenses ({filteredExpenses.length})</h3>
-          
-          {/* Filters Row */}
+          <h3 style={{ margin: 0, marginBottom: 10 }}>📋 Recent Expenses ({filteredAndSortedExpenses.length})</h3>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-            <select
-              value={filterMonth}
-              onChange={(e) => setFilterMonth(Number(e.target.value))}
-              style={{
-                padding: "8px 10px",
-                borderRadius: 5,
-                fontSize: 13,
-                border: "1px solid #ddd",
-                flex: isMobile ? "1 1 120px" : "none",
-              }}
-            >
+            <select value={filterMonth} onChange={(e) => setFilterMonth(Number(e.target.value))} style={{ padding: "8px 10px", borderRadius: 5, fontSize: 13 }}>
               {Array.from({ length: 12 }, (_, i) => (
-                <option key={i} value={i}>
-                  {isMobile
-                    ? new Date(2025, i).toLocaleDateString("en-US", { month: "short" })
-                    : new Date(2025, i).toLocaleDateString("en-US", { month: "long" })}
-                </option>
+                <option key={i} value={i}>{new Date(2025, i).toLocaleDateString("en-US", { month: isMobile ? "short" : "long" })}</option>
               ))}
             </select>
-            <select
-              value={filterYear}
-              onChange={(e) => setFilterYear(Number(e.target.value))}
-              style={{
-                padding: "8px 10px",
-                borderRadius: 5,
-                fontSize: 13,
-                border: "1px solid #ddd",
-                flex: isMobile ? "1 1 80px" : "none",
-              }}
-            >
-              {Array.from({ length: 5 }, (_, i) => {
-                const year = new Date().getFullYear() - 2 + i;
-                return (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                );
-              })}
+            <select value={filterYear} onChange={(e) => setFilterYear(Number(e.target.value))} style={{ padding: "8px 10px", borderRadius: 5, fontSize: 13 }}>
+              {Array.from({ length: 5 }, (_, i) => <option key={i} value={new Date().getFullYear() - 2 + i}>{new Date().getFullYear() - 2 + i}</option>)}
             </select>
           </div>
 
-          {/* Action Buttons Row */}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button
-              onClick={exportToCSV}
-              style={{
-                background: "linear-gradient(135deg, #10b981, #059669)",
-                color: "white",
-                border: "none",
-                padding: "8px 12px",
-                borderRadius: 5,
-                cursor: "pointer",
-                fontWeight: 600,
-                fontSize: 13,
-                flex: isMobile ? 1 : "none",
-              }}
-            >
-              📥 {isMobile ? "CSV" : "Export CSV"}
+            <button onClick={exportToCSV} style={{ background: "linear-gradient(135deg, #10b981, #059669)", color: "white", border: "none", padding: "8px 12px", borderRadius: 5, cursor: "pointer", fontWeight: 600, fontSize: 13 }}>
+              📥 Export CSV
             </button>
-            {filteredExpenses.length > 0 && (
-              <button
-                onClick={deleteAllExpenses}
-                style={{
-                  background: "linear-gradient(135deg, #dc2626, #b91c1c)",
-                  color: "white",
-                  border: "none",
-                  padding: "8px 12px",
-                  borderRadius: 5,
-                  cursor: "pointer",
-                  fontWeight: 600,
-                  fontSize: 13,
-                  flex: isMobile ? 1 : "none",
-                }}
-              >
-                🗑️ {isMobile ? "Del All" : "Delete All"}
+            {filteredAndSortedExpenses.length > 0 && (
+              <button onClick={deleteAllExpenses} style={{ background: "linear-gradient(135deg, #dc2626, #b91c1c)", color: "white", border: "none", padding: "8px 12px", borderRadius: 5, cursor: "pointer", fontWeight: 600, fontSize: 13 }}>
+                🗑️ Delete All
               </button>
             )}
           </div>
         </div>
 
-        {/* Date Range Filter */}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 15 }}>
+        {/* Date Range */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <label style={{ fontSize: 13, fontWeight: 600 }}>Date Range:</label>
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            style={{
-              padding: "8px 10px",
-              borderRadius: 5,
-              fontSize: 13,
-              border: "1px solid #ddd",
-              flex: isMobile ? "1 1 120px" : "none",
-            }}
-          />
-          <span style={{ fontSize: 13 }}>to</span>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            style={{
-              padding: "8px 10px",
-              borderRadius: 5,
-              fontSize: 13,
-              border: "1px solid #ddd",
-              flex: isMobile ? "1 1 120px" : "none",
-            }}
-          />
+          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={{ padding: "8px 10px", borderRadius: 5, fontSize: 13 }} />
+          <span>to</span>
+          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={{ padding: "8px 10px", borderRadius: 5, fontSize: 13 }} />
           {(dateFrom || dateTo) && (
-            <button
-              onClick={() => {
-                setDateFrom("");
-                setDateTo("");
-              }}
-              style={{
-                padding: "8px 12px",
-                borderRadius: 5,
-                fontSize: 13,
-                cursor: "pointer",
-                border: "1px solid #ddd",
-                background: "white",
-              }}
-            >
-              Clear
-            </button>
-          )}
-        </div>
-
-        {/* CONTINUE IN PART 4... */}
-        {/* CONTINUED FROM PART 3... */}
-
-        {/* Expenses List */}
-        <div style={{ marginTop: 20 }}>
-          {filteredExpenses.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 40, color: "#666" }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>📭</div>
-              <p>No expenses found for this filter.</p>
-            </div>
-          ) : (
-            filteredExpenses.map((exp) => {
-              const catInfo = EXPENSE_CATEGORIES.find((c) => c.value === exp.category);
-              const isEditing = editingId === exp.id;
-
-              return (
-                <div
-                  key={exp.id}
-                  className="card"
-                  style={{
-                    marginBottom: 12,
-                    padding: 15,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                    gap: 10,
-                  }}
-                >
-                  {isEditing ? (
-                    <>
-                      <div style={{ flex: 1, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                        <input
-                          type="number"
-                          value={editAmount}
-                          onChange={(e) => setEditAmount(e.target.value)}
-                          style={{ width: 100 }}
-                        />
-                        <input
-                          value={editDesc}
-                          onChange={(e) => setEditDesc(e.target.value)}
-                          style={{ flex: 1, minWidth: 150 }}
-                        />
-                        <select
-                          value={editCategory}
-                          onChange={(e) => setEditCategory(e.target.value)}
-                          style={{ width: 150 }}
-                        >
-                          {EXPENSE_CATEGORIES.map((cat) => (
-                            <option key={cat.value} value={cat.value}>
-                              {cat.icon} {cat.value}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <button
-                          onClick={() => saveEdit(exp.id)}
-                          style={{
-                            background: "#16a34a",
-                            color: "white",
-                            border: "none",
-                            padding: "6px 12px",
-                            borderRadius: 5,
-                            cursor: "pointer",
-                          }}
-                        >
-                          ✓
-                        </button>
-                        <button
-                          onClick={cancelEdit}
-                          style={{
-                            background: "#6b7280",
-                            color: "white",
-                            border: "none",
-                            padding: "6px 12px",
-                            borderRadius: 5,
-                            cursor: "pointer",
-                          }}
-                        >
-                          ✗
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: "bold", fontSize: 16 }}>
-                          {catInfo?.icon} {exp.description || "No description"}
-                        </div>
-                        <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
-                          {exp.category} • {new Date(exp.date).toLocaleDateString()}
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <div style={{ fontSize: 18, fontWeight: "bold", color: "#dc2626" }}>
-                          ₹{Number(exp.amount).toFixed(2)}
-                        </div>
-                        <button
-                          onClick={() => startEdit(exp)}
-                          style={{
-                            background: "#3b82f6",
-                            color: "white",
-                            border: "none",
-                            padding: "6px 12px",
-                            borderRadius: 5,
-                            cursor: "pointer",
-                            fontSize: 14,
-                          }}
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          onClick={() => deleteExpense(exp.id)}
-                          style={{
-                            background: "#dc2626",
-                            color: "white",
-                            border: "none",
-                            padding: "6px 12px",
-                            borderRadius: 5,
-                            cursor: "pointer",
-                            fontSize: 14,
-                          }}
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              );
-            })
+            <button onClick={() => { setDateFrom(""); setDateTo(""); }} style={{ padding: "8px 12px", borderRadius: 5, fontSize: 13, cursor: "pointer" }}>Clear</button>
           )}
         </div>
       </div>
 
+      {/* ← NEW: COLLAPSIBLE EXPENSES LIST */}
+      <CollapsibleSection title="All Expenses" icon="📋" badge={filteredAndSortedExpenses.length} defaultOpen={true}>
+        {filteredAndSortedExpenses.length === 0 ? (
+          <div style={{ textAlign: "center", padding: 40, color: "#666" }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>📭</div>
+            <p>No expenses found for this filter.</p>
+          </div>
+        ) : (
+          filteredAndSortedExpenses.map((exp) => {
+            const catInfo = allCategories.find((c) => c.value === exp.category);
+            const isEditing = editingId === exp.id;
+
+            return (
+              <div key={exp.id} style={{ marginBottom: 12, padding: 15, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, backgroundColor: "#fff", borderRadius: 8, border: "1px solid #e0e0e0" }}>
+                {isEditing ? (
+                  <>
+                    <div style={{ flex: 1, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <input type="number" value={editAmount} onChange={(e) => setEditAmount(e.target.value)} style={{ width: 100, padding: 8, borderRadius: 5, border: "1px solid #ddd" }} />
+                      <input value={editDesc} onChange={(e) => setEditDesc(e.target.value)} style={{ flex: 1, minWidth: 150, padding: 8, borderRadius: 5, border: "1px solid #ddd" }} />
+                      <select value={editCategory} onChange={(e) => setEditCategory(e.target.value)} style={{ width: 150, padding: 8, borderRadius: 5, border: "1px solid #ddd" }}>
+                        {allCategories.map((cat) => (
+                          <option key={cat.value} value={cat.value}>{cat.icon} {cat.value}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button onClick={() => saveEdit(exp.id)} style={{ background: "#16a34a", color: "white", border: "none", padding: "6px 12px", borderRadius: 5, cursor: "pointer" }}>✓</button>
+                      <button onClick={cancelEdit} style={{ background: "#6b7280", color: "white", border: "none", padding: "6px 12px", borderRadius: 5, cursor: "pointer" }}>✗</button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: "bold", fontSize: 16 }}>{catInfo?.icon} {exp.description || "No description"}</div>
+                      <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>{exp.category} • {new Date(exp.date).toLocaleDateString()}</div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{ fontSize: 18, fontWeight: "bold", color: "#dc2626" }}>₹{Number(exp.amount).toFixed(2)}</div>
+                      <button onClick={() => startEdit(exp)} style={{ background: "#3b82f6", color: "white", border: "none", padding: "6px 12px", borderRadius: 5, cursor: "pointer", fontSize: 14 }}>✏️</button>
+                      <button onClick={() => deleteExpense(exp.id)} style={{ background: "#dc2626", color: "white", border: "none", padding: "6px 12px", borderRadius: 5, cursor: "pointer", fontSize: 14 }}>🗑️</button>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })
+        )}
+      </CollapsibleSection>
+
       {/* Budget Modal */}
       {showBudgetModal && (
-        <div className="modal-overlay" onClick={() => setShowBudgetModal(false)}>
-          <div
-            className="modal"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: 900, width: "95%" }}
-          >
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }} onClick={() => setShowBudgetModal(false)}>
+          <div style={{ backgroundColor: "white", borderRadius: 10, padding: 30, maxWidth: 900, width: "95%", maxHeight: "80vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
             <h2 style={{ marginTop: 0 }}>📊 Budget Management</h2>
 
-            {/* Month/Year Selector for Budget Overview */}
-            <div style={{ display: "flex", gap: 10, marginBottom: 20, alignItems: "center", flexWrap: "wrap" }}>
-              <label style={{ fontWeight: 600 }}>View Budget for:</label>
-              <select
-                value={filterMonth}
-                onChange={(e) => setFilterMonth(Number(e.target.value))}
-                style={{ padding: "8px 12px", borderRadius: 5, fontSize: 14, border: "1px solid #ddd" }}
-              >
-                {Array.from({ length: 12 }, (_, i) => (
-                  <option key={i} value={i}>
-                    {new Date(2025, i).toLocaleDateString("en-US", { month: "long" })}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={filterYear}
-                onChange={(e) => setFilterYear(Number(e.target.value))}
-                style={{ padding: "8px 12px", borderRadius: 5, fontSize: 14, border: "1px solid #ddd" }}
-              >
-                {Array.from({ length: 5 }, (_, i) => {
-                  const year = new Date().getFullYear() - 2 + i;
-                  return (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-
-            {/* Budget Overview for Selected Month */}
-            {budgets.length > 0 && (
-              <div
-                style={{
-                  backgroundColor: "#f8f9fa",
-                  borderRadius: 10,
-                  padding: 15,
-                  marginBottom: 20,
-                }}
-              >
-                <h3 style={{ marginTop: 0, fontSize: 16 }}>
-                  📊 Budget Overview - {new Date(filterYear, filterMonth).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-                </h3>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(200px, 1fr))",
-                    gap: 12,
-                  }}
-                >
-                  {budgets.map((budget) => {
-                    const cat = budget.category;
-                    const catInfo = EXPENSE_CATEGORIES.find((c) => c.value === cat);
-                    const status = getBudgetStatus(cat);
-                    if (!status) return null;
-
-                    return (
-                      <div
-                        key={cat}
-                        style={{
-                          backgroundColor: "white",
-                          border: `2px solid ${status.color}`,
-                          borderRadius: 8,
-                          padding: 12,
-                        }}
-                      >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                          <div style={{ fontSize: 14, fontWeight: "bold" }}>
-                            {catInfo?.icon} {cat}
-                          </div>
-                          <div style={{ fontSize: 18, fontWeight: "bold", color: status.color }}>
-                            {status.percentage.toFixed(0)}%
-                          </div>
-                        </div>
-                        <div style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>
-                          ₹{status.spent.toFixed(0)} / ₹{status.limit.toFixed(0)}
-                        </div>
-                        <div className="progress-container" style={{ height: 6 }}>
-                          <div
-                            className="progress-bar"
-                            style={{
-                              width: `${Math.min(status.percentage, 100)}%`,
-                              backgroundColor: status.color,
-                              height: "100%",
-                            }}
-                          />
-                        </div>
-                        <div style={{ marginTop: 6, fontSize: 11 }}>
-                          {status.status === "exceeded" && (
-                            <span style={{ color: "#dc2626" }}>🔴 Exceeded</span>
-                          )}
-                          {status.status === "critical" && (
-                            <span style={{ color: "#f97316" }}>🟠 Critical</span>
-                          )}
-                          {status.status === "warning" && (
-                            <span style={{ color: "#f7b731" }}>🟡 Warning</span>
-                          )}
-                          {status.status === "on-track" && (
-                            <span style={{ color: "#16a34a" }}>🟢 On track</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+            {allCategories.map((cat) => (
+              <div key={cat.value} style={{ display: "flex", alignItems: "center", marginBottom: 12, padding: 12, backgroundColor: "#f8f9fa", borderRadius: 8, gap: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: "bold", fontSize: 14 }}>{cat.icon} {cat.value}</div>
+                  {categorySpending[cat.value] && (
+                    <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>Current month: ₹{categorySpending[cat.value].toFixed(0)}</div>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input type="number" placeholder="₹0" value={budgetForm[cat.value] || ""} onChange={(e) => setBudgetForm({ ...budgetForm, [cat.value]: e.target.value })} style={{ width: 100, padding: 8, border: "1px solid #ddd", borderRadius: 5, fontSize: 14 }} />
+                  <button onClick={() => saveBudget(cat.value)} style={{ backgroundColor: "#16a34a", color: "white", border: "none", padding: "8px 12px", borderRadius: 5, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Save</button>
                 </div>
               </div>
-            )}
+            ))}
 
-            {/* Set Budget Limits */}
-            <h3 style={{ fontSize: 16, marginBottom: 10 }}>Set Monthly Budget Limits</h3>
-            <p style={{ color: "#666", fontSize: 13, marginBottom: 15 }}>
-              These limits apply to every month. Spending resets monthly.
-            </p>
-
-            <div style={{ maxHeight: "40vh", overflowY: "auto" }}>
-              {EXPENSE_CATEGORIES.map((cat) => (
-                <div
-                  key={cat.value}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    marginBottom: 12,
-                    padding: 12,
-                    backgroundColor: "#f8f9fa",
-                    borderRadius: 8,
-                    gap: 10,
-                    flexWrap: isMobile ? "wrap" : "nowrap",
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: isMobile ? "100%" : 150 }}>
-                    <div style={{ fontWeight: "bold", fontSize: 14 }}>
-                      {cat.icon} {cat.value}
-                    </div>
-                    {categorySpending[cat.value] && (
-                      <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
-                        Current month: ₹{categorySpending[cat.value].toFixed(0)}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ display: "flex", gap: 8, width: isMobile ? "100%" : "auto" }}>
-                    <input
-                      type="number"
-                      placeholder="₹0"
-                      value={budgetForm[cat.value] || ""}
-                      onChange={(e) => setBudgetForm({ ...budgetForm, [cat.value]: e.target.value })}
-                      style={{
-                        width: isMobile ? "calc(100% - 80px)" : 100,
-                        padding: 8,
-                        border: "1px solid #ddd",
-                        borderRadius: 5,
-                        fontSize: 14,
-                      }}
-                    />
-                    <button
-                      onClick={() => saveBudget(cat.value)}
-                      style={{
-                        backgroundColor: "#16a34a",
-                        color: "white",
-                        border: "none",
-                        padding: "8px 12px",
-                        borderRadius: 5,
-                        cursor: "pointer",
-                        fontSize: 13,
-                        fontWeight: 600,
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      Save
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={() => setShowBudgetModal(false)}
-              style={{
-                backgroundColor: "#6c757d",
-                color: "white",
-                border: "none",
-                padding: "10px 20px",
-                borderRadius: 5,
-                cursor: "pointer",
-                marginTop: 15,
-                width: "100%",
-                fontWeight: 600,
+            {/* ← NEW: CUSTOM BUDGET CATEGORIES */}
+            <CustomBudgetCategories
+              trackerId={trackerId}
+              userId={currentUser?.id}
+              onCategoriesChange={() => {
+                loadCustomCategories(trackerId);
+                loadExpenses(trackerId);
               }}
-            >
-              Close
-            </button>
+            />
+
+            <button onClick={() => setShowBudgetModal(false)} style={{ backgroundColor: "#6c757d", color: "white", border: "none", padding: "10px 20px", borderRadius: 5, cursor: "pointer", marginTop: 15, width: "100%", fontWeight: 600 }}>Close</button>
           </div>
         </div>
       )}
 
       {/* Wishlist Modal */}
       {showWishlistModal && (
-  <WishlistModal
-    trackerId={trackerId}
-    currentUserId={currentUser?.id}
-    showName={(uid: string) => (uid === currentUser?.id ? "You" : "User")}
-    onClose={() => {
-      setShowWishlistModal(false);
-      loadWishlist(trackerId);
-    }}
-    onSelectItem={(item: any) => {
-      setDesc(item.item_name);
-      setCategory(item.category);
-      if (item.estimated_amount) {
-        setAmount(String(item.estimated_amount));
-      }
-    }}
-  />
-)}
-{showReceiptScanner && (
+        <WishlistModal
+          trackerId={trackerId}
+          currentUserId={currentUser?.id}
+          showName={(uid: string) => (uid === currentUser?.id ? "You" : "User")}
+          onClose={() => {
+            setShowWishlistModal(false);
+            loadWishlist(trackerId);
+          }}
+          onSelectItem={(item: any) => {
+            setDesc(item.item_name);
+            setCategory(item.category);
+            if (item.estimated_amount) {
+              setAmount(String(item.estimated_amount));
+            }
+          }}
+        />
+      )}
+
+      {/* Receipt Scanner */}
+      {showReceiptScanner && (
         <ReceiptScanner
           onScanComplete={(data) => {
             setDesc(data.description);

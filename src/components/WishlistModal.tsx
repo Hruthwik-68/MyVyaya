@@ -1,3 +1,5 @@
+
+
 import { useState, useEffect } from "react";
 import { supabase } from "../supabase";
 
@@ -108,33 +110,87 @@ export default function WishlistModal({
   const purchasedItems = wishlistItems.filter((item) => item.is_purchased);
 
   return (
+    // ← NEW: Full-screen overlay
     <div
-      className="modal-overlay"
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 9999,
+        padding: isMobile ? 10 : 20,
+        overflowY: "auto",
+      }}
       onClick={onClose}
-      style={{ zIndex: 1001 }}
     >
+      {/* ← NEW: Centered modal container */}
       <div
-        className="modal"
+        style={{
+          backgroundColor: "white",
+          borderRadius: 16,
+          maxWidth: 900,
+          width: "100%",
+          maxHeight: "90vh",
+          overflowY: "auto",
+          padding: isMobile ? 15 : 30,
+          position: "relative",
+          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+          margin: "auto",
+        }}
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: 800, width: "95%", maxHeight: "85vh" }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <h2 style={{ margin: 0 }}>🎁 Wishlist</h2>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            style={{
-              background: "linear-gradient(135deg, #667eea, #764ba2)",
-              color: "white",
-              border: "none",
-              padding: "8px 16px",
-              borderRadius: 5,
-              cursor: "pointer",
-              fontWeight: 600,
-              fontSize: 14,
-            }}
-          >
-            {showAddForm ? "✗ Cancel" : "➕ Add Item"}
-          </button>
+        {/* Header with Close Button */}
+        <div style={{ 
+          display: "flex", 
+          justifyContent: "space-between", 
+          alignItems: "center", 
+          marginBottom: 20,
+          position: "sticky",
+          top: 0,
+          backgroundColor: "white",
+          zIndex: 10,
+          paddingBottom: 15,
+          borderBottom: "2px solid #e5e7eb"
+        }}>
+          <h2 style={{ margin: 0, fontSize: isMobile ? 22 : 26 }}>🎁 Wishlist</h2>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              style={{
+                background: "linear-gradient(135deg, #667eea, #764ba2)",
+                color: "white",
+                border: "none",
+                padding: isMobile ? "8px 12px" : "10px 20px",
+                borderRadius: 8,
+                cursor: "pointer",
+                fontWeight: 600,
+                fontSize: 14,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {showAddForm ? "✗ Cancel" : "➕ Add Item"}
+            </button>
+            <button
+              onClick={onClose}
+              style={{
+                backgroundColor: "#6c757d",
+                color: "white",
+                border: "none",
+                padding: isMobile ? "8px 12px" : "10px 20px",
+                borderRadius: 8,
+                cursor: "pointer",
+                fontWeight: 600,
+                fontSize: 14,
+              }}
+            >
+              ✕ Close
+            </button>
+          </div>
         </div>
 
         {/* Add Item Form */}
@@ -143,33 +199,35 @@ export default function WishlistModal({
             style={{
               backgroundColor: "#f8f9fa",
               borderRadius: 10,
-              padding: 15,
+              padding: isMobile ? 12 : 20,
               marginBottom: 20,
+              border: "2px solid #e5e7eb",
             }}
           >
-            <h3 style={{ marginTop: 0, fontSize: 16 }}>Add Wishlist Item</h3>
-            <div style={{ display: "grid", gap: 12 }}>
+            <h3 style={{ marginTop: 0, fontSize: 18 }}>✨ Add Wishlist Item</h3>
+            <div style={{ display: "grid", gap: 15 }}>
               <input
                 type="text"
                 placeholder="Item name (e.g., New headphones)"
                 value={itemName}
                 onChange={(e) => setItemName(e.target.value)}
                 style={{
-                  padding: "10px",
-                  borderRadius: 5,
+                  padding: "12px",
+                  borderRadius: 8,
                   border: "1px solid #ddd",
-                  fontSize: 14,
+                  fontSize: 15,
+                  width: "100%",
                 }}
               />
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 15 }}>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   style={{
-                    padding: "10px",
-                    borderRadius: 5,
+                    padding: "12px",
+                    borderRadius: 8,
                     border: "1px solid #ddd",
-                    fontSize: 14,
+                    fontSize: 15,
                   }}
                 >
                   {EXPENSE_CATEGORIES.map((cat) => (
@@ -184,10 +242,10 @@ export default function WishlistModal({
                   value={estimatedAmount}
                   onChange={(e) => setEstimatedAmount(e.target.value)}
                   style={{
-                    padding: "10px",
-                    borderRadius: 5,
+                    padding: "12px",
+                    borderRadius: 8,
                     border: "1px solid #ddd",
-                    fontSize: 14,
+                    fontSize: 15,
                   }}
                 />
               </div>
@@ -196,11 +254,11 @@ export default function WishlistModal({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 style={{
-                  padding: "10px",
-                  borderRadius: 5,
+                  padding: "12px",
+                  borderRadius: 8,
                   border: "1px solid #ddd",
-                  fontSize: 14,
-                  minHeight: 60,
+                  fontSize: 15,
+                  minHeight: 80,
                   resize: "vertical",
                 }}
               />
@@ -211,39 +269,49 @@ export default function WishlistModal({
                   background: "linear-gradient(135deg, #16a34a, #059669)",
                   color: "white",
                   border: "none",
-                  padding: "10px 20px",
-                  borderRadius: 5,
+                  padding: "14px 24px",
+                  borderRadius: 8,
                   cursor: loading ? "not-allowed" : "pointer",
                   fontWeight: 600,
-                  fontSize: 14,
+                  fontSize: 16,
                 }}
               >
-                {loading ? "Adding..." : "💾 Add to Wishlist"}
+                {loading ? "⏳ Adding..." : "💾 Add to Wishlist"}
               </button>
             </div>
           </div>
         )}
 
         {/* Unpurchased Items */}
-        <div style={{ marginBottom: 20 }}>
-          <h3 style={{ fontSize: 16, marginBottom: 12 }}>
-            🛒 Pending Items ({unpurchasedItems.length})
+        <div style={{ marginBottom: 30 }}>
+          <h3 style={{ fontSize: 18, marginBottom: 15, display: "flex", alignItems: "center", gap: 10 }}>
+            🛒 Pending Items 
+            <span style={{ 
+              backgroundColor: "#3b82f6", 
+              color: "white", 
+              padding: "2px 10px", 
+              borderRadius: 12, 
+              fontSize: 14 
+            }}>
+              {unpurchasedItems.length}
+            </span>
           </h3>
           {unpurchasedItems.length === 0 ? (
             <div
               style={{
                 textAlign: "center",
-                padding: 30,
+                padding: 40,
                 backgroundColor: "#f9fafb",
-                borderRadius: 8,
+                borderRadius: 12,
                 color: "#666",
+                border: "2px dashed #e5e7eb",
               }}
             >
-              <div style={{ fontSize: 36, marginBottom: 8 }}>🎁</div>
-              <p style={{ margin: 0 }}>No items in wishlist yet. Add one above!</p>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>🎁</div>
+              <p style={{ margin: 0, fontSize: 15 }}>No items in wishlist yet. Add one above!</p>
             </div>
           ) : (
-            <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gap: 12 }}>
               {unpurchasedItems.map((item) => {
                 const catInfo = EXPENSE_CATEGORIES.find((c) => c.value === item.category);
                 return (
@@ -252,37 +320,46 @@ export default function WishlistModal({
                     style={{
                       backgroundColor: "white",
                       border: "2px solid #e5e7eb",
-                      borderRadius: 8,
-                      padding: 12,
+                      borderRadius: 12,
+                      padding: isMobile ? 12 : 16,
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
-                      gap: 10,
+                      gap: 15,
                       flexWrap: isMobile ? "wrap" : "nowrap",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#f9fafb";
+                      e.currentTarget.style.borderColor = "#3b82f6";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "white";
+                      e.currentTarget.style.borderColor = "#e5e7eb";
                     }}
                   >
                     <div style={{ flex: 1, minWidth: 200 }}>
-                      <div style={{ fontWeight: "bold", fontSize: 15, marginBottom: 4 }}>
+                      <div style={{ fontWeight: "bold", fontSize: 16, marginBottom: 6 }}>
                         {catInfo?.icon} {item.item_name}
                       </div>
-                      <div style={{ fontSize: 12, color: "#666", marginBottom: 2 }}>
+                      <div style={{ fontSize: 13, color: "#666", marginBottom: 4 }}>
                         Category: {item.category}
                       </div>
                       {item.estimated_amount && (
-                        <div style={{ fontSize: 12, color: "#666", marginBottom: 2 }}>
+                        <div style={{ fontSize: 13, color: "#059669", marginBottom: 4, fontWeight: 600 }}>
                           Estimated: ₹{Number(item.estimated_amount).toFixed(0)}
                         </div>
                       )}
                       {item.notes && (
-                        <div style={{ fontSize: 12, color: "#666", fontStyle: "italic" }}>
+                        <div style={{ fontSize: 12, color: "#666", fontStyle: "italic", marginTop: 4 }}>
                           {item.notes}
                         </div>
                       )}
-                      <div style={{ fontSize: 11, color: "#999", marginTop: 4 }}>
-                        Added by {showName(item.created_by)}
+                      <div style={{ fontSize: 11, color: "#999", marginTop: 6 }}>
+                        Added by {showName(item.created_by)} • {new Date(item.created_at).toLocaleDateString()}
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       {onSelectItem && (
                         <button
                           onClick={() => handleSelectItem(item)}
@@ -290,10 +367,10 @@ export default function WishlistModal({
                             background: "linear-gradient(135deg, #3b82f6, #1d4ed8)",
                             color: "white",
                             border: "none",
-                            padding: "6px 12px",
-                            borderRadius: 5,
+                            padding: "8px 16px",
+                            borderRadius: 8,
                             cursor: "pointer",
-                            fontSize: 12,
+                            fontSize: 13,
                             fontWeight: 600,
                             whiteSpace: "nowrap",
                           }}
@@ -307,15 +384,15 @@ export default function WishlistModal({
                           background: "linear-gradient(135deg, #16a34a, #059669)",
                           color: "white",
                           border: "none",
-                          padding: "6px 12px",
-                          borderRadius: 5,
+                          padding: "8px 16px",
+                          borderRadius: 8,
                           cursor: "pointer",
-                          fontSize: 12,
+                          fontSize: 13,
                           fontWeight: 600,
                           whiteSpace: "nowrap",
                         }}
                       >
-                        ✓ Mark
+                        ✓ Mark Purchased
                       </button>
                       {item.created_by === currentUserId && (
                         <button
@@ -324,10 +401,10 @@ export default function WishlistModal({
                             background: "#dc2626",
                             color: "white",
                             border: "none",
-                            padding: "6px 12px",
-                            borderRadius: 5,
+                            padding: "8px 16px",
+                            borderRadius: 8,
                             cursor: "pointer",
-                            fontSize: 12,
+                            fontSize: 13,
                             fontWeight: 600,
                           }}
                         >
@@ -344,11 +421,20 @@ export default function WishlistModal({
 
         {/* Purchased Items */}
         {purchasedItems.length > 0 && (
-          <div style={{ marginBottom: 20 }}>
-            <h3 style={{ fontSize: 16, marginBottom: 12 }}>
-              ✓ Purchased ({purchasedItems.length})
+          <div>
+            <h3 style={{ fontSize: 18, marginBottom: 15, display: "flex", alignItems: "center", gap: 10 }}>
+              ✅ Purchased 
+              <span style={{ 
+                backgroundColor: "#16a34a", 
+                color: "white", 
+                padding: "2px 10px", 
+                borderRadius: 12, 
+                fontSize: 14 
+              }}>
+                {purchasedItems.length}
+              </span>
             </h3>
-            <div style={{ display: "grid", gap: 8 }}>
+            <div style={{ display: "grid", gap: 10 }}>
               {purchasedItems.map((item) => {
                 const catInfo = EXPENSE_CATEGORIES.find((c) => c.value === item.category);
                 return (
@@ -357,17 +443,17 @@ export default function WishlistModal({
                     style={{
                       backgroundColor: "#f0fdf4",
                       border: "2px solid #16a34a",
-                      borderRadius: 8,
-                      padding: 10,
-                      opacity: 0.7,
+                      borderRadius: 10,
+                      padding: 12,
+                      opacity: 0.8,
                     }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div>
-                        <div style={{ fontWeight: "bold", fontSize: 14, textDecoration: "line-through" }}>
+                        <div style={{ fontWeight: "bold", fontSize: 15, textDecoration: "line-through", color: "#059669" }}>
                           {catInfo?.icon} {item.item_name}
                         </div>
-                        <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
+                        <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
                           Purchased by {showName(item.purchased_by)} on{" "}
                           {new Date(item.purchased_date).toLocaleDateString()}
                         </div>
@@ -379,10 +465,10 @@ export default function WishlistModal({
                             background: "#dc2626",
                             color: "white",
                             border: "none",
-                            padding: "4px 8px",
-                            borderRadius: 5,
+                            padding: "6px 12px",
+                            borderRadius: 6,
                             cursor: "pointer",
-                            fontSize: 11,
+                            fontSize: 12,
                           }}
                         >
                           🗑️
@@ -395,24 +481,6 @@ export default function WishlistModal({
             </div>
           </div>
         )}
-
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          style={{
-            backgroundColor: "#6c757d",
-            color: "white",
-            border: "none",
-            padding: "10px 20px",
-            borderRadius: 5,
-            cursor: "pointer",
-            width: "100%",
-            fontWeight: 600,
-            fontSize: 14,
-          }}
-        >
-          Close
-        </button>
       </div>
     </div>
   );

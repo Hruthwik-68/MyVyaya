@@ -1,9 +1,18 @@
+// ============================================
+// GROUP.TSX - PART 1: IMPORTS, STATES, LOAD FUNCTIONS
+// ============================================
 
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 
+// ← NEW: Import all new components
+import CollapsibleSection from "../components/CollapsibleSection";
+import AdvancedFilters from "../components/AdvancedFilters";
+import type { FilterOptions, SortOptions } from "../components/AdvancedFilters";import GroupInfoPanel from "../components/GroupInfoPanel";
+import CustomBudgetCategories from "../components/CustomBudgetCategories";
+
+// Existing components
 import AddExpenseForm from "../components/GroupComponents/AddExpenseForm";
 import MemberTags from "../components/GroupComponents/MemberTags";
 import MultiPersonSlider from "../components/GroupComponents/MultiPersonSlider";
@@ -15,6 +24,7 @@ import PaymentHistory from "../components/GroupComponents/PaymentHistory";
 import SettlementsGraph from "../components/GroupComponents/SettlementsGraph";
 import WishlistModal from "../components/WishlistModal";
 import ReceiptScanner from "../components/ReceiptScanner";
+
 // Budget Categories
 const EXPENSE_CATEGORIES = [
   { value: "Food & Dining", icon: "🍔", color: "#ff6b6b" },
@@ -32,6 +42,8 @@ export default function Group() {
   const navigate = useNavigate();
 
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [groupData, setGroupData] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [members, setMembers] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<Record<string, string>>({});
@@ -70,12 +82,24 @@ export default function Group() {
   const [showWishlistModal, setShowWishlistModal] = useState(false);
 
   const [showReceiptScanner, setShowReceiptScanner] = useState(false);
+
+  // Smart Split State
+  const [useSmartSplit, setUseSmartSplit] = useState(true);
+  const [updatingSplitMode, setUpdatingSplitMode] = useState(false);
+
+  // ← NEW: Advanced Filter & Sort States
+  const [filters, setFilters] = useState<FilterOptions>({});
+  const [sortOptions, setSortOptions] = useState<SortOptions>({ field: "date", direction: "desc" });
+  
+  // ← NEW: Custom Categories State
+  const [customCategories, setCustomCategories] = useState<any[]>([]);
+
   // ------------ NAME HELPER ------------
-  const showName = (uid: string) => {
+  const showName = useCallback((uid: string) => {
     if (!uid) return "";
     if (uid === currentUser?.id) return "You";
     return profiles[uid] || uid.slice(0, 6);
-  };
+  }, [currentUser?.id, profiles]);
 
   // ------------ LOAD USER ------------
   const loadUser = async () => {
@@ -83,6 +107,84 @@ export default function Group() {
     if (data?.user) {
       setCurrentUser(data.user);
       setPaidBy(data.user.id);
+    }
+  };
+
+  // ------------ LOAD GROUP DATA ------------
+  const loadGroupData = async () => {
+    const { data: tracker } = await supabase
+      .from("trackers")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (tracker) {
+      setGroupData(tracker);
+      setUseSmartSplit(tracker.use_smart_split ?? true);
+      
+      if (currentUser?.id === tracker.admin_user_id) {
+        setIsAdmin(true);
+      }
+    }
+  };
+
+  // ← NEW: LOAD CUSTOM CATEGORIES
+  const loadCustomCategories = async () => {
+    const { data } = await supabase
+      .from("custom_categories")
+      .select("*")
+      .eq("tracker_id", id);
+    
+    setCustomCategories(data || []);
+  };
+
+  // ← NEW: MERGE DEFAULT + CUSTOM CATEGORIES (MEMOIZED)
+  const allCategories = useMemo(() => {
+    return [
+      ...EXPENSE_CATEGORIES,
+      ...customCategories.map(c => ({
+        value: c.name,
+        icon: c.icon,
+        color: c.color
+      }))
+    ];
+  }, [customCategories]);
+
+  // ------------ TOGGLE SMART SPLIT (Admin only) ------------
+  const toggleSmartSplit = async () => {
+    if (!isAdmin) {
+      alert("⚠️ Only the group admin can change split mode!");
+      return;
+    }
+
+    if (updatingSplitMode) return;
+
+    const newMode = !useSmartSplit;
+    const confirmMsg = newMode
+      ? "Enable Smart Split?\n\n✅ Smart Split: Optimizes settlements (A→B→C becomes A→C)\n\nThis will recalculate all pending settlements."
+      : "Switch to Normal Split?\n\n⚠️ Normal Split: Direct settlements only (no optimization)\n\nThis will recalculate all pending settlements.";
+
+    if (!confirm(confirmMsg)) return;
+
+    setUpdatingSplitMode(true);
+
+    try {
+      const { error } = await supabase
+        .from("trackers")
+        .update({ use_smart_split: newMode })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setUseSmartSplit(newMode);
+      alert(`✅ Split mode updated to ${newMode ? "Smart" : "Normal"} Split!`);
+      
+      await loadPayments();
+    } catch (error) {
+      console.error("Error updating split mode:", error);
+      alert("❌ Failed to update split mode");
+    } finally {
+      setUpdatingSplitMode(false);
     }
   };
 
@@ -181,22 +283,28 @@ export default function Group() {
 
   useEffect(() => {
     loadUser();
-    loadMembers();
-    loadExpenses();
-    loadPayments();
-    loadBudgets();
-    loadWishlist();
-  }, [id]);
+  }, []);
+
+  useEffect(() => {
+    if (currentUser && id) {
+      loadGroupData();
+      loadMembers();
+      loadExpenses();
+      loadPayments();
+      loadBudgets();
+      loadWishlist();
+      loadCustomCategories();
+    }
+  }, [id, currentUser]);
 
   useEffect(() => {
     applyFilters();
   }, [expenses, filterMonth, filterYear, dateFrom, dateTo]);
 
-  // ------------ APPLY FILTERS ------------
+  // ------------ APPLY BASIC FILTERS (Month/Year/Date Range) ------------
   const applyFilters = () => {
     let filtered = [...expenses];
 
-    // Filter by month/year
     if (filterMonth >= 0 && filterYear) {
       filtered = filtered.filter((exp) => {
         const expDate = new Date(exp.date);
@@ -207,7 +315,6 @@ export default function Group() {
       });
     }
 
-    // Filter by date range
     if (dateFrom && dateTo) {
       filtered = filtered.filter((exp) => {
         const expDate = new Date(exp.date);
@@ -220,8 +327,90 @@ export default function Group() {
     setFilteredExpenses(filtered);
   };
 
-  // CONTINUE IN PART 2...
-  // CONTINUED FROM PART 1...
+// CONTINUE IN PART 2...
+
+// ============================================
+// GROUP.TSX - PART 2: ADVANCED FILTERS + MEMOIZED CALCULATIONS
+// ============================================
+
+  // ← NEW: APPLY ADVANCED FILTERS & SORTING (OPTIMIZED with useMemo)
+  const filteredAndSortedExpenses = useMemo(() => {
+    let result = [...filteredExpenses];
+
+    // User filters
+    if (filters.showOnlyMe) {
+      result = result.filter(exp => exp.paid_by === currentUser?.id);
+    }
+    if (filters.showOnlyOthers) {
+      result = result.filter(exp => exp.paid_by !== currentUser?.id);
+    }
+    if (filters.specificUser) {
+      result = result.filter(exp => exp.paid_by === filters.specificUser);
+    }
+
+    // Payment filters
+    if (filters.showOnlyIPaid) {
+      result = result.filter(exp => exp.paid_by === currentUser?.id);
+    }
+    if (filters.showOnlyIOwe) {
+      result = result.filter(exp => {
+        const mySplit = exp.expense_splits?.find((s: any) => s.user_id === currentUser?.id);
+        return mySplit && exp.paid_by !== currentUser?.id;
+      });
+    }
+    if (filters.showOnlyTheyOweMe) {
+      result = result.filter(exp => {
+        return exp.paid_by === currentUser?.id && 
+          exp.expense_splits?.some((s: any) => s.user_id !== currentUser?.id);
+      });
+    }
+
+    // Amount filters
+    if (filters.minAmount !== undefined) {
+      result = result.filter(exp => Number(exp.amount) >= filters.minAmount!);
+    }
+    if (filters.maxAmount !== undefined) {
+      result = result.filter(exp => Number(exp.amount) <= filters.maxAmount!);
+    }
+
+    // Category filter
+    if (filters.selectedCategories && filters.selectedCategories.length > 0) {
+      result = result.filter(exp => filters.selectedCategories!.includes(exp.category));
+    }
+
+    // Sorting
+    result.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortOptions.field) {
+        case "date":
+          comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+          break;
+        case "amount":
+          comparison = Number(a.amount) - Number(b.amount);
+          break;
+        case "category":
+          comparison = (a.category || "").localeCompare(b.category || "");
+          break;
+        case "paidBy":
+          comparison = showName(a.paid_by).localeCompare(showName(b.paid_by));
+          break;
+      }
+      
+      return sortOptions.direction === "asc" ? comparison : -comparison;
+    });
+
+    return result;
+  }, [filteredExpenses, filters, sortOptions, currentUser?.id, showName]);
+
+  // ← NEW: MEMOIZED CALLBACKS for filters
+  const handleFilterChange = useCallback((newFilters: FilterOptions) => {
+    setFilters(newFilters);
+  }, []);
+
+  const handleSortChange = useCallback((newSort: SortOptions) => {
+    setSortOptions(newSort);
+  }, []);
 
   // ------------ ADD EXPENSE ------------
   const addExpense = async () => {
@@ -282,8 +471,8 @@ export default function Group() {
     alert(`✓ Budget saved for ${cat}`);
   };
 
-  // ------------ CALCULATE CATEGORY SPENDING ------------
-  const getCategorySpending = (forMonth?: number, forYear?: number) => {
+  // ------------ CATEGORY SPENDING (MEMOIZED) ------------
+  const getCategorySpending = useCallback((forMonth?: number, forYear?: number) => {
     const targetMonth = forMonth ?? filterMonth;
     const targetYear = forYear ?? filterYear;
 
@@ -301,12 +490,12 @@ export default function Group() {
     });
 
     return spending;
-  };
+  }, [expenses, filterMonth, filterYear]);
 
-  const categorySpending = getCategorySpending();
+  const categorySpending = useMemo(() => getCategorySpending(), [getCategorySpending]);
 
   // ------------ GET BUDGET STATUS ------------
-  const getBudgetStatus = (cat: string) => {
+  const getBudgetStatus = useCallback((cat: string) => {
     const budget = budgets.find((b) => b.category === cat);
     if (!budget) return null;
 
@@ -328,16 +517,16 @@ export default function Group() {
     }
 
     return { spent, limit, percentage, status, color };
-  };
+  }, [budgets, categorySpending]);
 
-  // ------------ ANALYTICS HELPERS ------------
-  const getTopExpenses = () => {
-    return [...filteredExpenses]
+  // ------------ ANALYTICS HELPERS (MEMOIZED) ------------
+  const getTopExpenses = useMemo(() => {
+    return [...filteredAndSortedExpenses]
       .sort((a, b) => Number(b.amount) - Number(a.amount))
       .slice(0, 5);
-  };
+  }, [filteredAndSortedExpenses]);
 
-  const getMonthlyTrend = () => {
+  const getMonthlyTrend = useMemo(() => {
     const trend: { [key: string]: number } = {};
     expenses.forEach((exp) => {
       const date = new Date(exp.date);
@@ -347,11 +536,11 @@ export default function Group() {
     return Object.entries(trend)
       .sort(([a], [b]) => a.localeCompare(b))
       .slice(-6);
-  };
+  }, [expenses]);
 
-  const exportToCSV = () => {
+  const exportToCSV = useCallback(() => {
     const headers = ["Date", "Description", "Category", "Amount", "Paid By"];
-    const rows = filteredExpenses.map((exp) => [
+    const rows = filteredAndSortedExpenses.map((exp) => [
       new Date(exp.date).toLocaleDateString(),
       exp.description || "No description",
       exp.category || "General",
@@ -366,77 +555,156 @@ export default function Group() {
     a.href = url;
     a.download = `group-expenses-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
-  };
+  }, [filteredAndSortedExpenses, showName]);
 
-  const totalSpent = Object.values(categorySpending).reduce((sum, amt) => sum + amt, 0);
-  const totalBudget = budgets.reduce((sum, b) => sum + Number(b.monthly_limit), 0);
+  const totalSpent = useMemo(() => {
+    return Object.values(categorySpending).reduce((sum, amt) => sum + amt, 0);
+  }, [categorySpending]);
+  
+  const totalBudget = useMemo(() => {
+    return budgets.reduce((sum, b) => sum + Number(b.monthly_limit), 0);
+  }, [budgets]);
 
-  // ------------ BALANCES (UNCHANGED) ------------
-  const balances: Record<string, number> = {};
-  members.forEach((m) => (balances[m.user_id] = 0));
+  // ============================================
+  // BALANCES CALCULATION (MEMOIZED for O(1) access)
+  // ============================================
+  const balances = useMemo(() => {
+    const bal: Record<string, number> = {};
+    members.forEach((m) => (bal[m.user_id] = 0));
 
-  expenses.forEach((exp) => {
-    const amt = Number(exp.amount);
-    balances[exp.paid_by] += amt;
+    expenses.forEach((exp) => {
+      const amt = Number(exp.amount);
+      bal[exp.paid_by] += amt;
 
-    exp.expense_splits?.forEach((s: any) => {
-      balances[s.user_id] -= amt * (s.percent / 100);
-    });
-  });
-
-  payments
-    .filter((p) => p.status === "confirmed")
-    .forEach((p) => {
-      const amt = Number(p.amount);
-      balances[p.from_user] += amt;
-      balances[p.to_user] -= amt;
-    });
-
-  Object.keys(balances).forEach((u) => {
-    if (Math.abs(balances[u]) < 0.05) balances[u] = 0;
-  });
-
-  const users = Object.keys(balances);
-  const settlements: any[] = [];
-
-  let creditors = users
-    .filter((u) => balances[u] > 0)
-    .map((u) => ({ u, amt: balances[u] }));
-
-  let debtors = users
-    .filter((u) => balances[u] < 0)
-    .map((u) => ({ u, amt: -balances[u] }));
-
-  let i = 0,
-    j = 0;
-
-  while (i < debtors.length && j < creditors.length) {
-    const pay = Math.min(debtors[i].amt, creditors[j].amt);
-
-    settlements.push({
-      from: debtors[i].u,
-      to: creditors[j].u,
-      amount: Number(pay.toFixed(2)),
+      exp.expense_splits?.forEach((s: any) => {
+        bal[s.user_id] -= amt * (s.percent / 100);
+      });
     });
 
-    debtors[i].amt -= pay;
-    creditors[j].amt -= pay;
+    payments
+      .filter((p) => p.status === "confirmed")
+      .forEach((p) => {
+        const amt = Number(p.amount);
+        bal[p.from_user] += amt;
+        bal[p.to_user] -= amt;
+      });
 
-    if (debtors[i].amt <= 0.0001) i++;
-    if (creditors[j].amt <= 0.0001) j++;
-  }
+    Object.keys(bal).forEach((u) => {
+      if (Math.abs(bal[u]) < 0.05) bal[u] = 0;
+    });
 
-  const shownSettlements = settlements.filter(
-    (s) => s.from === currentUser?.id || s.to === currentUser?.id
-  );
+    return bal;
+  }, [members, expenses, payments]);
 
-  const existingPending = (s: any) =>
+  // ============================================
+  // SETTLEMENTS CALCULATION (MEMOIZED)
+  // ============================================
+  const calculateSettlements = useCallback(() => {
+    const users = Object.keys(balances);
+    
+    if (useSmartSplit) {
+      // SMART SPLIT: Optimized settlements
+      const settlements: any[] = [];
+
+      let creditors = users
+        .filter((u) => balances[u] > 0)
+        .map((u) => ({ u, amt: balances[u] }));
+
+      let debtors = users
+        .filter((u) => balances[u] < 0)
+        .map((u) => ({ u, amt: -balances[u] }));
+
+      let i = 0, j = 0;
+
+      while (i < debtors.length && j < creditors.length) {
+        const pay = Math.min(debtors[i].amt, creditors[j].amt);
+
+        settlements.push({
+          from: debtors[i].u,
+          to: creditors[j].u,
+          amount: Number(pay.toFixed(2)),
+        });
+
+        debtors[i].amt -= pay;
+        creditors[j].amt -= pay;
+
+        if (debtors[i].amt <= 0.0001) i++;
+        if (creditors[j].amt <= 0.0001) j++;
+      }
+
+      return settlements;
+    } else {
+      // NORMAL SPLIT: Direct settlements only
+      const settlements: any[] = [];
+      const balancesCopy = { ...balances };
+
+      users.forEach((debtor) => {
+        if (balancesCopy[debtor] >= 0) return;
+
+        users.forEach((creditor) => {
+          if (balancesCopy[creditor] <= 0) return;
+          if (debtor === creditor) return;
+
+          const debtAmount = Math.abs(balancesCopy[debtor]);
+          const creditAmount = balancesCopy[creditor];
+          const settleAmount = Math.min(debtAmount, creditAmount);
+
+          if (settleAmount > 0.01) {
+            settlements.push({
+              from: debtor,
+              to: creditor,
+              amount: Number(settleAmount.toFixed(2)),
+            });
+
+            balancesCopy[debtor] += settleAmount;
+            balancesCopy[creditor] -= settleAmount;
+          }
+        });
+      });
+
+      return settlements;
+    }
+  }, [balances, useSmartSplit]);
+
+  const settlements = useMemo(() => calculateSettlements(), [calculateSettlements]);
+
+  const shownSettlements = useMemo(() => {
+    return settlements.filter(
+      (s) => s.from === currentUser?.id || s.to === currentUser?.id
+    );
+  }, [settlements, currentUser?.id]);
+
+  const existingPending = useCallback((s: any) =>
     payments.some(
       (p) =>
         p.status === "pending" &&
         p.from_user === s.from &&
         p.to_user === s.to
-    );
+    ), [payments]);
+
+  // ← NEW: UPI PAYMENT FOR SETTLEMENTS
+  const handlePayViaUPI = async (settlement: any) => {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("upi_id, name")
+      .eq("id", settlement.to)
+      .single();
+
+    if (!profile?.upi_id) {
+      alert(`${showName(settlement.to)} hasn't added their UPI ID yet!`);
+      return;
+    }
+
+    const upiUrl = `upi://pay?pa=${profile.upi_id}&pn=${encodeURIComponent(profile.name)}&am=${settlement.amount}&cu=INR&tn=${encodeURIComponent(groupData?.name || 'Vyaya Settlement')}`;
+    
+    window.location.href = upiUrl;
+    
+    setTimeout(() => {
+      if (window.confirm("After completing payment, click OK to mark as paid.")) {
+        markPaid(settlement);
+      }
+    }, 1000);
+  };
 
   const markPaid = async (s: any) => {
     if (pendingNow || existingPending(s)) return;
@@ -452,6 +720,8 @@ export default function Group() {
       to_user: s.to,
       amount: Number(amt),
       status: "pending",
+      source_type: "group",
+      source_id: id,
     });
 
     await loadPayments();
@@ -461,20 +731,84 @@ export default function Group() {
   const confirmPayment = async (pid: string) => {
     await supabase
       .from("payments")
-      .update({ status: "confirmed" })
+      .update({ 
+        status: "confirmed",
+        confirmed_at: new Date().toISOString()
+      })
       .eq("id", pid);
 
     loadPayments();
   };
 
+  // ← NEW: DELETE GROUP (Admin only, only if settled)
+  const deleteGroup = async () => {
+    if (!isAdmin) {
+      alert("⚠️ Only the group admin can delete this group!");
+      return;
+    }
+
+    const hasDebts = Object.values(balances).some(bal => Math.abs(bal) > 0.01);
+
+    if (hasDebts) {
+      const debtList = Object.entries(balances)
+        .filter(([, bal]) => Math.abs(bal) > 0.01)
+        .map(([uid, bal]) => `${showName(uid)}: ${bal > 0 ? '+' : ''}₹${bal.toFixed(2)}`)
+        .join('\n');
+
+      alert(
+        "❌ Cannot delete group!\n\n" +
+        "All members must be settled before deleting.\n\n" +
+        "Pending balances:\n" +
+        debtList +
+        "\n\nSettle all payments first!"
+      );
+      return;
+    }
+
+    const confirmDelete = confirm(
+      `⚠️ DELETE GROUP: "${groupData?.name}"?\n\n` +
+      "This action CANNOT be undone!\n\n" +
+      "All expenses, settlements, and history will be permanently deleted.\n\n" +
+      "Click OK to confirm deletion."
+    );
+
+    if (!confirmDelete) return;
+
+    const doubleConfirm = confirm(
+      "🚨 FINAL CONFIRMATION\n\n" +
+      "Are you ABSOLUTELY SURE?\n\n" +
+      "This will delete ALL data for this group forever!"
+    );
+
+    if (!doubleConfirm) return;
+
+    try {
+      const { error } = await supabase
+        .from("trackers")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      alert("✅ Group deleted successfully!");
+      navigate("/home");
+    } catch (error) {
+      console.error("Error deleting group:", error);
+      alert("❌ Failed to delete group. Please try again.");
+    }
+  };
+
   const isMobile = window.innerWidth < 640;
 
-  // CONTINUE IN PART 3...
-  // CONTINUED FROM PART 2...
+// CONTINUE IN PART 3...
+
+// ============================================
+// GROUP.TSX - PART 3: UI RENDERING (HEADER TO ADD EXPENSE)
+// ============================================
 
   return (
     <div style={{ padding: "15px", maxWidth: 1200, margin: "0 auto" }}>
-      {/* Header */}
+      {/* Header with Group Name */}
       <div
         style={{
           display: "flex",
@@ -482,10 +816,28 @@ export default function Group() {
           justifyContent: "space-between",
           alignItems: isMobile ? "stretch" : "center",
           gap: 10,
-          marginBottom: 20,
+          marginBottom: 15,
         }}
       >
-        <h2 style={{ margin: 0, fontSize: isMobile ? 20 : 24 }}>Group Expenses</h2>
+        <div>
+          <h2 style={{ margin: 0, fontSize: isMobile ? 20 : 24 }}>
+            {groupData?.name || "Group Expenses"}
+          </h2>
+          {isAdmin && (
+            <span
+              style={{
+                fontSize: 12,
+                color: "#7c3aed",
+                fontWeight: 600,
+                marginTop: 4,
+                display: "inline-block",
+              }}
+            >
+              ⭐ You are the admin
+            </span>
+          )}
+        </div>
+
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button
             onClick={() => setShowAnalytics(!showAnalytics)}
@@ -520,22 +872,6 @@ export default function Group() {
             🎁 Wishlist
           </button>
           <button
-          onClick={() => setShowReceiptScanner(true)}
-          style={{
-            background: "linear-gradient(135deg, #f59e0b, #d97706)",
-            color: "white",
-            border: "none",
-            padding: "10px 15px",
-            borderRadius: 5,
-            cursor: "pointer",
-            fontSize: 14,
-            fontWeight: "600",
-            whiteSpace: "nowrap",
-          }}
-        >
-          📸 Scan Receipt
-        </button>
-          <button
             onClick={() => setShowBudgetModal(true)}
             style={{
               backgroundColor: "#7c3aed",
@@ -565,155 +901,102 @@ export default function Group() {
         </div>
       </div>
 
-      {/* Analytics Dashboard */}
-      {showAnalytics && (
-        <div
+      {/* Smart Split Toggle */}
+      <div
+        style={{
+          backgroundColor: useSmartSplit ? "#dbeafe" : "#fef3c7",
+          border: `2px solid ${useSmartSplit ? "#3b82f6" : "#f59e0b"}`,
+          borderRadius: 10,
+          padding: 15,
+          marginBottom: 20,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: isMobile ? "wrap" : "nowrap",
+          gap: 15,
+        }}
+      >
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 5 }}>
+            <h3 style={{ margin: 0, fontSize: 16 }}>
+              {useSmartSplit ? "🔄 Smart Split" : "📍 Normal Split"} 
+              {updatingSplitMode && " (Updating...)"}
+            </h3>
+            {isAdmin && (
+              <span
+                style={{
+                  fontSize: 11,
+                  backgroundColor: "#7c3aed",
+                  color: "white",
+                  padding: "2px 8px",
+                  borderRadius: 12,
+                  fontWeight: 600,
+                }}
+              >
+                ADMIN
+              </span>
+            )}
+          </div>
+          <p style={{ margin: 0, fontSize: 13, color: "#666" }}>
+            {useSmartSplit
+              ? "✅ Optimized settlements (e.g., A→B→C becomes A→C directly)"
+              : "⚠️ Direct settlements only (no optimization across members)"}
+          </p>
+        </div>
+
+        <button
+          onClick={toggleSmartSplit}
+          disabled={!isAdmin || updatingSplitMode}
           style={{
-            backgroundColor: "#ffffff",
-            border: "1px solid #e0e0e0",
-            borderRadius: 10,
-            padding: 20,
-            marginBottom: 20,
+            backgroundColor: isAdmin ? (useSmartSplit ? "#10b981" : "#f59e0b") : "#9ca3af",
+            color: "white",
+            border: "none",
+            padding: "10px 20px",
+            borderRadius: 8,
+            cursor: isAdmin && !updatingSplitMode ? "pointer" : "not-allowed",
+            fontWeight: 600,
+            fontSize: 14,
+            whiteSpace: "nowrap",
+            opacity: !isAdmin || updatingSplitMode ? 0.6 : 1,
           }}
         >
-          <h3 style={{ marginTop: 0 }}>📊 Analytics Dashboard</h3>
+          {isAdmin
+            ? updatingSplitMode
+              ? "⏳ Updating..."
+              : `Switch to ${useSmartSplit ? "Normal" : "Smart"} Split`
+            : "🔒 Admin Only"}
+        </button>
+      </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: 20, marginTop: 20 }}>
-            {/* Category Breakdown */}
-            <div>
-              <h4>Category Breakdown</h4>
-              {Object.entries(categorySpending)
-                .sort(([, a], [, b]) => (b as number) - (a as number))
-                .map(([cat, amount]) => {
-                  const catInfo = EXPENSE_CATEGORIES.find((c) => c.value === cat);
-                  const percentage = totalSpent > 0 ? ((amount as number) / totalSpent) * 100 : 0;
-                  return (
-                    <div key={cat} style={{ marginBottom: 12 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                        <span>
-                          {catInfo?.icon} {cat}
-                        </span>
-                        <span style={{ fontWeight: "bold" }}>
-                          ₹{(amount as number).toFixed(0)} ({percentage.toFixed(1)}%)
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          height: 10,
-                          backgroundColor: "#e0e0e0",
-                          borderRadius: 5,
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: `${percentage}%`,
-                            height: "100%",
-                            background: catInfo?.color || "#a29bfe",
-                            transition: "width 0.3s ease",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
+      {/* Group Info Panel */}
+      <GroupInfoPanel
+        groupId={id!}
+        groupName={groupData?.name || "Group"}
+        groupPassword={groupData?.group_password}
+        isAdmin={isAdmin}
+      />
 
-            {/* Top 5 Expenses */}
-            <div>
-              <h4>Top 5 Expenses</h4>
-              {getTopExpenses().map((exp, idx) => {
-                const catInfo = EXPENSE_CATEGORIES.find((c) => c.value === exp.category);
-                return (
-                  <div
-                    key={exp.id}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: 12,
-                      backgroundColor: "#f9fafb",
-                      borderRadius: 8,
-                      marginBottom: 8,
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div
-                        style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: "50%",
-                          background: "linear-gradient(135deg, #667eea, #764ba2)",
-                          color: "white",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: 12,
-                          fontWeight: "bold",
-                        }}
-                      >
-                        {idx + 1}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 600 }}>
-                          {catInfo?.icon} {exp.description || "No description"}
-                        </div>
-                        <div style={{ fontSize: 12, color: "#666" }}>
-                          Paid by {showName(exp.paid_by)} • {new Date(exp.date).toLocaleDateString()}
-                        </div>
-                      </div>
-                    </div>
-                    <div style={{ fontWeight: "bold", color: "#dc2626" }}>
-                      ₹{Number(exp.amount).toFixed(0)}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+      {/* ← FIXED: Advanced Filters with month/year/export INSIDE */}
+      <AdvancedFilters
+        currentUserId={currentUser?.id}
+        members={members}
+        categories={allCategories}
+        showName={showName}
+        onFilterChange={handleFilterChange}
+        onSortChange={handleSortChange}
+        filterMonth={filterMonth}
+        filterYear={filterYear}
+        onMonthChange={setFilterMonth}
+        onYearChange={setFilterYear}
+        onExportCSV={exportToCSV}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        onDateFromChange={setDateFrom}
+        onDateToChange={setDateTo}
+        totalExpenses={filteredAndSortedExpenses.length}
+      />
 
-          {/* Monthly Trend */}
-          <div style={{ marginTop: 30 }}>
-            <h4>Monthly Trend (Last 6 Months)</h4>
-            <div style={{ display: "flex", gap: 10, overflowX: "auto" }}>
-              {getMonthlyTrend().map(([month, amount]) => {
-                const maxAmount = Math.max(...getMonthlyTrend().map(([, amt]) => amt as number));
-                const height = ((amount as number) / maxAmount) * 150;
-                return (
-                  <div key={month} style={{ textAlign: "center", minWidth: 80 }}>
-                    <div style={{ fontSize: 12, marginBottom: 8 }}>{month}</div>
-                    <div
-                      style={{
-                        height: 150,
-                        display: "flex",
-                        alignItems: "flex-end",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 60,
-                          height: height,
-                          background: "linear-gradient(180deg, #667eea, #764ba2)",
-                          borderRadius: "8px 8px 0 0",
-                          transition: "height 0.3s",
-                        }}
-                      />
-                    </div>
-                    <div style={{ fontSize: 12, fontWeight: "bold", marginTop: 8 }}>
-                      ₹{(amount as number).toFixed(0)}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* CONTINUE IN PART 4... */}
-      {/* CONTINUED FROM PART 3... */}
-
-      {/* Budget Overview - ON MAIN PAGE */}
+      {/* Budget Overview */}
       {budgets.length > 0 && (
         <div
           style={{
@@ -758,7 +1041,7 @@ export default function Group() {
           >
             {budgets.map((budget) => {
               const cat = budget.category;
-              const catInfo = EXPENSE_CATEGORIES.find((c) => c.value === cat);
+              const catInfo = allCategories.find((c) => c.value === cat);
               const status = getBudgetStatus(cat);
 
               if (!status) return null;
@@ -827,18 +1110,8 @@ export default function Group() {
         </div>
       )}
 
-      {/* Add Expense Form with Wishlist */}
-      <div
-        style={{
-          backgroundColor: "#ffffff",
-          border: "1px solid #e0e0e0",
-          borderRadius: 10,
-          padding: 20,
-          marginBottom: 20,
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>💸 Add Expense</h3>
-
+      {/* ← FIXED: Add Expense wrapped in CollapsibleSection with defaultOpen={false} */}
+      <CollapsibleSection title="Add Expense" icon="💸" defaultOpen={false}>
         {/* Wishlist Selector */}
         {wishlistItems.length > 0 && (
           <div style={{ marginBottom: 15 }}>
@@ -874,6 +1147,26 @@ export default function Group() {
           </div>
         )}
 
+        {/* Scan Button */}
+        <div style={{ marginBottom: 15 }}>
+          <button
+            onClick={() => setShowReceiptScanner(true)}
+            style={{
+              background: "linear-gradient(135deg, #f59e0b, #d97706)",
+              color: "white",
+              border: "none",
+              padding: "10px 20px",
+              borderRadius: 8,
+              cursor: "pointer",
+              fontWeight: 600,
+              fontSize: 14,
+              width: "100%",
+            }}
+          >
+            📸 Scan Receipt to Auto-Fill
+          </button>
+        </div>
+
         <AddExpenseForm
           amount={amount}
           desc={desc}
@@ -887,419 +1180,216 @@ export default function Group() {
           addExpense={addExpense}
           loading={loading}
           showName={showName}
-          categories={EXPENSE_CATEGORIES}
+          categories={allCategories}
         />
-      </div>
 
-      <MemberTags
-        members={members}
-        participants={participants}
-        setParticipants={setParticipants}
-        splits={splits}
-        setSplits={setSplits}
-        currentUser={currentUser}
-        showName={showName}
-      />
+        <MemberTags
+          members={members}
+          participants={participants}
+          setParticipants={setParticipants}
+          splits={splits}
+          setSplits={setSplits}
+          currentUser={currentUser}
+          showName={showName}
+        />
 
-      <MultiPersonSlider
-        splits={splits}
-        setSplits={setSplits}
-        currentUser={currentUser}
-        showName={showName}
-      />
+        <MultiPersonSlider
+          splits={splits}
+          setSplits={setSplits}
+          currentUser={currentUser}
+          showName={showName}
+        />
 
-      {/* Save Expense Button - ONLY ONE */}
-      <button
-        disabled={loading}
-        onClick={addExpense}
-        style={{
-          backgroundColor: loading ? "#ccc" : "#16a34a",
-          color: "white",
-          border: "none",
-          padding: "14px 28px",
-          borderRadius: 8,
-          cursor: loading ? "not-allowed" : "pointer",
-          fontSize: 18,
-          fontWeight: "600",
-          width: "100%",
-          maxWidth: 400,
-          margin: "20px auto",
-          display: "block",
-          boxShadow: "0 2px 8px rgba(22, 163, 74, 0.3)",
-          transition: "all 0.2s",
-        }}
-        onMouseEnter={(e) => {
-          if (!loading) {
-            (e.target as HTMLButtonElement).style.backgroundColor = "#15803d";
-            (e.target as HTMLButtonElement).style.transform = "translateY(-2px)";
-            (e.target as HTMLButtonElement).style.boxShadow = "0 4px 12px rgba(22, 163, 74, 0.4)";
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!loading) {
-            (e.target as HTMLButtonElement).style.backgroundColor = "#16a34a";
-            (e.target as HTMLButtonElement).style.transform = "translateY(0)";
-            (e.target as HTMLButtonElement).style.boxShadow = "0 2px 8px rgba(22, 163, 74, 0.3)";
-          }
-        }}
-      >
-        {loading ? "⏳ Saving..." : "💾 Save Expense"}
-      </button>
-
-      {/* Expense Filters & Export */}
-      <div
-        style={{
-          backgroundColor: "#f8f9fa",
-          border: "1px solid #dee2e6",
-          borderRadius: 10,
-          padding: 15,
-          marginBottom: 20,
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 15 }}>
-          <h3 style={{ margin: 0 }}>🔍 Filter Expenses ({filteredExpenses.length})</h3>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <select
-              value={filterMonth}
-              onChange={(e) => setFilterMonth(Number(e.target.value))}
-              style={{ padding: "8px 12px", borderRadius: 5, fontSize: 13, border: "1px solid #ddd" }}
-            >
-              {Array.from({ length: 12 }, (_, i) => (
-                <option key={i} value={i}>
-                  {new Date(2025, i).toLocaleDateString("en-US", { month: "long" })}
-                </option>
-              ))}
-            </select>
-            <select
-              value={filterYear}
-              onChange={(e) => setFilterYear(Number(e.target.value))}
-              style={{ padding: "8px 12px", borderRadius: 5, fontSize: 13, border: "1px solid #ddd" }}
-            >
-              {Array.from({ length: 5 }, (_, i) => {
-                const year = new Date().getFullYear() - 2 + i;
-                return (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                );
-              })}
-            </select>
-            <button
-              onClick={exportToCSV}
-              style={{
-                background: "linear-gradient(135deg, #10b981, #059669)",
-                color: "white",
-                border: "none",
-                padding: "8px 16px",
-                borderRadius: 5,
-                cursor: "pointer",
-                fontWeight: 600,
-                fontSize: 13,
-              }}
-            >
-              📥 Export CSV
-            </button>
-          </div>
-        </div>
-
-        {/* Date Range */}
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          <label style={{ fontSize: 13, fontWeight: 600 }}>Date Range:</label>
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            style={{ padding: "8px 12px", borderRadius: 5, fontSize: 13, border: "1px solid #ddd" }}
-          />
-          <span>to</span>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            style={{ padding: "8px 12px", borderRadius: 5, fontSize: 13, border: "1px solid #ddd" }}
-          />
-          {(dateFrom || dateTo) && (
-            <button
-              onClick={() => {
-                setDateFrom("");
-                setDateTo("");
-              }}
-              style={{
-                padding: "8px 12px",
-                borderRadius: 5,
-                fontSize: 13,
-                cursor: "pointer",
-                border: "1px solid #ddd",
-                background: "white",
-              }}
-            >
-              Clear
-            </button>
-          )}
-        </div>
-      </div>
-
-      <ExpensesTable
-        expenses={filteredExpenses}
-        currentUser={currentUser}
-        showName={showName}
-      />
-
-      <BalanceSummary myBalance={balances[currentUser?.id] || 0} />
-
-      <SettlementsTable
-        settlements={shownSettlements}
-        currentUser={currentUser}
-        markPaid={markPaid}
-        showName={showName}
-      />
-
-      <PendingPayments
-        payments={payments}
-        currentUser={currentUser}
-        confirmPayment={confirmPayment}
-        showName={showName}
-      />
-
-      <PaymentHistory
-        payments={payments}
-        currentUser={currentUser}
-        showName={showName}
-      />
-
-      <SettlementsGraph
-        members={members}
-        settlements={shownSettlements}
-        currentUserId={currentUser?.id}
-        showName={showName}
-      />
-
-      {/* CONTINUE IN PART 5 FOR MODALS... */}
-      {/* CONTINUED FROM PART 4... */}
-
-      {/* Budget Modal */}
-      {showBudgetModal && (
-        <div
+        {/* Save Expense Button */}
+        <button
+          disabled={loading}
+          onClick={addExpense}
           style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 1000,
+            backgroundColor: loading ? "#ccc" : "#16a34a",
+            color: "white",
+            border: "none",
+            padding: "14px 28px",
+            borderRadius: 8,
+            cursor: loading ? "not-allowed" : "pointer",
+            fontSize: 18,
+            fontWeight: "600",
+            width: "100%",
+            marginTop: 20,
           }}
-          onClick={() => setShowBudgetModal(false)}
         >
-          <div
-            style={{
-              backgroundColor: "white",
-              borderRadius: 10,
-              padding: 30,
-              maxWidth: 800,
-              width: "90%",
-              maxHeight: "80vh",
-              overflowY: "auto",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 style={{ marginTop: 0 }}>📊 Budget Management</h2>
+          {loading ? "⏳ Saving..." : "💾 Save Expense"}
+        </button>
+      </CollapsibleSection>
 
-            {/* Month/Year Selector */}
-            <div style={{ display: "flex", gap: 10, marginBottom: 20, alignItems: "center", flexWrap: "wrap" }}>
-              <label style={{ fontWeight: 600 }}>View Budget for:</label>
-              <select
-                value={filterMonth}
-                onChange={(e) => setFilterMonth(Number(e.target.value))}
-                style={{ padding: "8px 12px", borderRadius: 5, fontSize: 14, border: "1px solid #ddd" }}
-              >
-                {Array.from({ length: 12 }, (_, i) => (
-                  <option key={i} value={i}>
-                    {new Date(2025, i).toLocaleDateString("en-US", { month: "long" })}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={filterYear}
-                onChange={(e) => setFilterYear(Number(e.target.value))}
-                style={{ padding: "8px 12px", borderRadius: 5, fontSize: 14, border: "1px solid #ddd" }}
-              >
-                {Array.from({ length: 5 }, (_, i) => {
-                  const year = new Date().getFullYear() - 2 + i;
+
+      {/* Analytics Dashboard - ← FIXED: defaultOpen={false} */}
+      {showAnalytics && (
+        <CollapsibleSection title="Analytics Dashboard" icon="📊" defaultOpen={false}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: 20 }}>
+            {/* Category Breakdown */}
+            <div>
+              <h4>Category Breakdown</h4>
+              {Object.entries(categorySpending)
+                .sort(([, a], [, b]) => (b as number) - (a as number))
+                .map(([cat, amount]) => {
+                  const catInfo = allCategories.find((c) => c.value === cat);
+                  const percentage = totalSpent > 0 ? ((amount as number) / totalSpent) * 100 : 0;
                   return (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
+                    <div key={cat} style={{ marginBottom: 12 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                        <span>{catInfo?.icon} {cat}</span>
+                        <span style={{ fontWeight: "bold" }}>
+                          ₹{(amount as number).toFixed(0)} ({percentage.toFixed(1)}%)
+                        </span>
+                      </div>
+                      <div style={{ height: 10, backgroundColor: "#e0e0e0", borderRadius: 5, overflow: "hidden" }}>
+                        <div style={{ width: `${percentage}%`, height: "100%", background: catInfo?.color || "#a29bfe" }} />
+                      </div>
+                    </div>
                   );
                 })}
-              </select>
             </div>
 
-            {/* Budget Overview for Selected Month */}
-            {budgets.length > 0 && (
-              <div
-                style={{
-                  backgroundColor: "#f8f9fa",
-                  borderRadius: 10,
-                  padding: 15,
-                  marginBottom: 20,
-                }}
-              >
-                <h3 style={{ marginTop: 0, fontSize: 16 }}>
-                  📊 Budget Overview - {new Date(filterYear, filterMonth).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-                </h3>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(200px, 1fr))",
-                    gap: 12,
-                  }}
-                >
-                  {budgets.map((budget) => {
-                    const cat = budget.category;
-                    const catInfo = EXPENSE_CATEGORIES.find((c) => c.value === cat);
-                    const status = getBudgetStatus(cat);
-                    if (!status) return null;
-
-                    return (
-                      <div
-                        key={cat}
-                        style={{
-                          backgroundColor: "white",
-                          border: `2px solid ${status.color}`,
-                          borderRadius: 8,
-                          padding: 12,
-                        }}
-                      >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                          <div style={{ fontSize: 14, fontWeight: "bold" }}>
-                            {catInfo?.icon} {cat}
-                          </div>
-                          <div style={{ fontSize: 18, fontWeight: "bold", color: status.color }}>
-                            {status.percentage.toFixed(0)}%
-                          </div>
-                        </div>
-                        <div style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>
-                          ₹{status.spent.toFixed(0)} / ₹{status.limit.toFixed(0)}
-                        </div>
-                        <div
-                          style={{
-                            height: 6,
-                            backgroundColor: "#e0e0e0",
-                            borderRadius: 3,
-                            overflow: "hidden",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: `${Math.min(status.percentage, 100)}%`,
-                              height: "100%",
-                              backgroundColor: status.color,
-                            }}
-                          />
-                        </div>
-                        <div style={{ marginTop: 6, fontSize: 11 }}>
-                          {status.status === "exceeded" && (
-                            <span style={{ color: "#dc2626" }}>🔴 Exceeded</span>
-                          )}
-                          {status.status === "critical" && (
-                            <span style={{ color: "#f97316" }}>🟠 Critical</span>
-                          )}
-                          {status.status === "warning" && (
-                            <span style={{ color: "#f7b731" }}>🟡 Warning</span>
-                          )}
-                          {status.status === "on-track" && (
-                            <span style={{ color: "#16a34a" }}>🟢 On track</span>
-                          )}
-                        </div>
+            {/* Top 5 Expenses */}
+            <div>
+              <h4>Top 5 Expenses</h4>
+              {getTopExpenses.map((exp, idx) => {
+                const catInfo = allCategories.find((c) => c.value === exp.category);
+                return (
+                  <div key={exp.id} style={{ display: "flex", justifyContent: "space-between", padding: 12, backgroundColor: "#f9fafb", borderRadius: 8, marginBottom: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 24, height: 24, borderRadius: "50%", background: "linear-gradient(135deg, #667eea, #764ba2)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: "bold" }}>
+                        {idx + 1}
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Set Budget Limits */}
-            <h3 style={{ fontSize: 16, marginBottom: 10 }}>Set Monthly Budget Limits</h3>
-            <p style={{ color: "#666", fontSize: 14 }}>
-              Set spending limits for each category. You'll get alerts when approaching or exceeding limits.
-            </p>
-
-            {EXPENSE_CATEGORIES.map((cat) => (
-              <div
-                key={cat.value}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  marginBottom: 15,
-                  padding: 15,
-                  backgroundColor: "#f8f9fa",
-                  borderRadius: 8,
-                  flexWrap: isMobile ? "wrap" : "nowrap",
-                  gap: 10,
-                }}
-              >
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: "bold", fontSize: 16 }}>
-                    {cat.icon} {cat.value}
-                  </div>
-                  {categorySpending[cat.value] && (
-                    <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
-                      Current month: ₹{categorySpending[cat.value].toFixed(0)} spent
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{catInfo?.icon} {exp.description || "No description"}</div>
+                        <div style={{ fontSize: 12, color: "#666" }}>Paid by {showName(exp.paid_by)} • {new Date(exp.date).toLocaleDateString()}</div>
+                      </div>
                     </div>
+                    <div style={{ fontWeight: "bold", color: "#dc2626" }}>₹{Number(exp.amount).toFixed(0)}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Monthly Trend */}
+          <div style={{ marginTop: 30 }}>
+            <h4>Monthly Trend (Last 6 Months)</h4>
+            <div style={{ display: "flex", gap: 10, overflowX: "auto" }}>
+              {getMonthlyTrend.map(([month, amount]) => {
+                const maxAmount = Math.max(...getMonthlyTrend.map(([, amt]) => amt as number));
+                const height = ((amount as number) / maxAmount) * 150;
+                return (
+                  <div key={month} style={{ textAlign: "center", minWidth: 80 }}>
+                    <div style={{ fontSize: 12, marginBottom: 8 }}>{month}</div>
+                    <div style={{ height: 150, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+                      <div style={{ width: 60, height: height, background: "linear-gradient(180deg, #667eea, #764ba2)", borderRadius: "8px 8px 0 0" }} />
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: "bold", marginTop: 8 }}>₹{(amount as number).toFixed(0)}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* ← FIXED: Expenses - defaultOpen={true} (ONLY ONE that stays open) */}
+      <CollapsibleSection title="Expenses" icon="📋" badge={filteredAndSortedExpenses.length} defaultOpen={true}>
+        <ExpensesTable expenses={filteredAndSortedExpenses} currentUser={currentUser} showName={showName} />
+      </CollapsibleSection>
+
+      {/* ← FIXED: Balance - defaultOpen={false} */}
+      <CollapsibleSection 
+        title="Your Balance" 
+        icon="💰" 
+        badge={balances[currentUser?.id] > 0 ? "↑" : balances[currentUser?.id] < 0 ? "↓" : "✓"}
+        badgeColor={balances[currentUser?.id] > 0 ? "#16a34a" : balances[currentUser?.id] < 0 ? "#dc2626" : "#6b7280"}
+        defaultOpen={false}
+      >
+        <BalanceSummary myBalance={balances[currentUser?.id] || 0} />
+      </CollapsibleSection>
+
+      {/* ← FIXED: Settlements - defaultOpen={false} */}
+      <CollapsibleSection title="Who should pay whom" icon="💸" badge={shownSettlements.length} defaultOpen={false}>
+        <SettlementsTable
+          settlements={shownSettlements}
+          currentUser={currentUser}
+          markPaid={markPaid}
+          showName={showName}
+          disableIf={existingPending}
+          pendingNow={pendingNow}
+          handlePayViaUPI={handlePayViaUPI}
+        />
+      </CollapsibleSection>
+
+      {/* ← FIXED: Pending Payments - defaultOpen={false} */}
+      <CollapsibleSection 
+        title="Pending Confirmations" 
+        icon="⏳" 
+        badge={payments.filter(p => p.status === "pending" && p.to_user === currentUser?.id).length}
+        badgeColor="#f59e0b"
+        defaultOpen={false}
+      >
+        <PendingPayments payments={payments} currentUser={currentUser} confirmPayment={confirmPayment} showName={showName} />
+      </CollapsibleSection>
+
+      {/* ← FIXED: Payment History - defaultOpen={false} */}
+      <CollapsibleSection 
+        title="Payment History" 
+        icon="📜" 
+        badge={payments.filter(p => p.status === "confirmed").length}
+        badgeColor="#10b981"
+        defaultOpen={false}
+      >
+        <PaymentHistory payments={payments} currentUser={currentUser} showName={showName} />
+      </CollapsibleSection>
+
+      <SettlementsGraph members={members} settlements={shownSettlements} currentUserId={currentUser?.id} showName={showName} />
+
+      {/* Delete Group Button (Admin only) */}
+      {isAdmin && (
+        <div style={{ marginTop: 30, textAlign: "center" }}>
+          <button onClick={deleteGroup} style={{ backgroundColor: "#dc2626", color: "white", border: "none", padding: "12px 24px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 14 }}>
+            🗑️ Delete Group (Admin Only)
+          </button>
+          <p style={{ fontSize: 12, color: "#666", marginTop: 8 }}>⚠️ All members must be settled before deletion</p>
+        </div>
+      )}
+
+      {/* Budget Modal with Custom Categories */}
+      {showBudgetModal && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }} onClick={() => setShowBudgetModal(false)}>
+          <div style={{ backgroundColor: "white", borderRadius: 10, padding: 30, maxWidth: 800, width: "90%", maxHeight: "80vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ marginTop: 0 }}>📊 Budget Management</h2>
+
+            {allCategories.map((cat) => (
+              <div key={cat.value} style={{ display: "flex", alignItems: "center", marginBottom: 15, padding: 15, backgroundColor: "#f8f9fa", borderRadius: 8, gap: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: "bold", fontSize: 16 }}>{cat.icon} {cat.value}</div>
+                  {categorySpending[cat.value] && (
+                    <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>Current month: ₹{categorySpending[cat.value].toFixed(0)} spent</div>
                   )}
                 </div>
                 <div style={{ display: "flex", gap: 10 }}>
-                  <input
-                    type="number"
-                    placeholder="₹0"
-                    value={budgetForm[cat.value] || ""}
-                    onChange={(e) =>
-                      setBudgetForm({ ...budgetForm, [cat.value]: e.target.value })
-                    }
-                    style={{
-                      width: 120,
-                      padding: 8,
-                      border: "1px solid #ddd",
-                      borderRadius: 5,
-                    }}
-                  />
-                  <button
-                    onClick={() => saveBudget(cat.value)}
-                    style={{
-                      backgroundColor: "#16a34a",
-                      color: "white",
-                      border: "none",
-                      padding: "8px 16px",
-                      borderRadius: 5,
-                      cursor: "pointer",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    Save
-                  </button>
+                  <input type="number" placeholder="₹0" value={budgetForm[cat.value] || ""} onChange={(e) => setBudgetForm({ ...budgetForm, [cat.value]: e.target.value })} style={{ width: 120, padding: 8, border: "1px solid #ddd", borderRadius: 5 }} />
+                  <button onClick={() => saveBudget(cat.value)} style={{ backgroundColor: "#16a34a", color: "white", border: "none", padding: "8px 16px", borderRadius: 5, cursor: "pointer", whiteSpace: "nowrap" }}>Save</button>
                 </div>
               </div>
             ))}
 
-            <button
-              onClick={() => setShowBudgetModal(false)}
-              style={{
-                backgroundColor: "#6c757d",
-                color: "white",
-                border: "none",
-                padding: "10px 20px",
-                borderRadius: 5,
-                cursor: "pointer",
-                marginTop: 20,
-                width: "100%",
+            {/* Custom Budget Categories */}
+            <CustomBudgetCategories
+              trackerId={id!}
+              userId={currentUser?.id}
+              onCategoriesChange={() => {
+                loadCustomCategories();
+                loadExpenses();
               }}
-            >
-              Close
-            </button>
+            />
+
+            <button onClick={() => setShowBudgetModal(false)} style={{ backgroundColor: "#6c757d", color: "white", border: "none", padding: "10px 20px", borderRadius: 5, cursor: "pointer", marginTop: 20, width: "100%" }}>Close</button>
           </div>
         </div>
       )}
@@ -1323,17 +1413,21 @@ export default function Group() {
           }}
         />
       )}
-     {showReceiptScanner && (
-  <ReceiptScanner
-    onScanComplete={(data) => {
-      setDesc(data.description);
-      setAmount(data.amount);
-      setCategory(data.category);
-      setShowReceiptScanner(false);
-    }}
-    onClose={() => setShowReceiptScanner(false)}
-  />
-)}
+
+      {/* Receipt Scanner */}
+      {showReceiptScanner && (
+        <ReceiptScanner
+          onScanComplete={(data) => {
+            setDesc(data.description);
+            setAmount(data.amount);
+            setCategory(data.category);
+            setShowReceiptScanner(false);
+          }}
+          onClose={() => setShowReceiptScanner(false)}
+        />
+      )}
     </div>
   );
 }
+
+

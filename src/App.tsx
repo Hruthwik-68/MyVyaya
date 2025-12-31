@@ -11,6 +11,7 @@ import Group from "./pages/Group";
 import Navbar from "./components/Navbar";
 import Onboarding from "./pages/Onboarding";
 import Friends from "./pages/Friends";
+import LoanManagement from "./pages/LoanManagement"; // ← ADDED THIS LINE
 
 function App() {
   const [user, setUser] = useState<any>(null);
@@ -183,7 +184,13 @@ const checkProfileCompletion = async (userId: string) => {
       user && profileComplete ? <Personal /> : <Navigate to={user ? "/profile" : "/home"} />
     } 
   />
-  
+  {/* ← NEW ROUTE FOR LOAN MANAGEMENT */}
+<Route 
+  path="/loans" 
+  element={
+    user && profileComplete ? <LoanManagement /> : <Navigate to={user ? "/profile" : "/home"} />
+  } 
+/>
   <Route 
     path="/join-group" 
     element={
