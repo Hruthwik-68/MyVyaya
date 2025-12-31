@@ -11,7 +11,7 @@ import CollapsibleSection from "../components/CollapsibleSection";
 import AdvancedFilters from "../components/AdvancedFilters";
 import type { FilterOptions, SortOptions } from "../components/AdvancedFilters";
 import GroupInfoPanel from "../components/GroupInfoPanel";
-import CustomBudgetCategories from "../components/CustomBudgetCategories";
+import CustomBudgetCategories from "../components/Custombudgetcategories";
 
 // Existing components
 import AddExpenseForm from "../components/GroupComponents/AddExpenseForm";

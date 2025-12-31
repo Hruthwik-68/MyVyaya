@@ -6,7 +6,7 @@ import { supabase } from "../supabase";
 import CollapsibleSection from "../components/CollapsibleSection";
 import AdvancedFilters from "../components/AdvancedFilters";
 import type { FilterOptions, SortOptions } from "../components/AdvancedFilters";
-import CustomBudgetCategories from "../components/CustomBudgetCategories";
+import CustomBudgetCategories from "../components/Custombudgetcategories";
 import WishlistModal from "../components/WishlistModal";
 import ReceiptScanner from "../components/ReceiptScanner";
 
