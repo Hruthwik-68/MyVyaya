@@ -1,5 +1,10 @@
+// ============================================
+// APP.TSX - FIXED IMPORTS
+// ✅ All imports properly organized at the top
+// ============================================
+
 import { useEffect, useState } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useParams, useNavigate } from "react-router-dom"; // ✅ FIXED: Added useNavigate here
 import { supabase } from "./supabase";
 
 import Home from "./pages/Home";
@@ -9,66 +14,243 @@ import Personal from "./pages/Personal";
 import JoinGroup from "./pages/JoinGroup";
 import Group from "./pages/Group";
 import Navbar from "./components/Navbar";
-import Onboarding from "./pages/Onboarding";
 import Friends from "./pages/Friends";
-import LoanManagement from "./pages/LoanManagement"; // ← ADDED THIS LINE
+import LoanManagement from "./pages/LoanManagement";
+
+// ============================================
+// AUTO JOIN GROUP COMPONENT
+// ✅ Now has access to useNavigate from imports above
+// ============================================
+
+function AutoJoinGroup() {
+  const { groupId } = useParams();
+  const navigate = useNavigate(); // ✅ This now works because useNavigate is imported at the top
+  const [joining, setJoining] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    joinGroup();
+  }, []);
+
+  const joinGroup = async () => {
+    if (!groupId) {
+      setError("Invalid group link");
+      setJoining(false);
+      return;
+    }
+
+    try {
+      // Get current user
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+
+      if (!userId) {
+        setError("Please log in first");
+        setTimeout(() => navigate("/home"), 2000);
+        setJoining(false);
+        return;
+      }
+
+      // Check if group exists
+      const { data: group, error: groupError } = await supabase
+        .from("trackers")
+        .select("*")
+        .eq("id", groupId)
+        .eq("type", "group")
+        .single();
+
+      if (groupError || !group) {
+        setError("Group not found or deleted");
+        setJoining(false);
+        return;
+      }
+
+      // Check if password required
+      if (group.group_password) {
+        const password = prompt(`🔐 Enter password for "${group.name}":`);
+        if (!password) {
+          setError("Password required to join");
+          setJoining(false);
+          return;
+        }
+        if (password !== group.group_password) {
+          setError("❌ Incorrect password");
+          setJoining(false);
+          return;
+        }
+      }
+
+      // Check if already a member
+      const { data: existing } = await supabase
+        .from("group_members")
+        .select("*")
+        .eq("tracker_id", groupId)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (existing) {
+        // Already a member, just navigate
+        alert(`You're already in "${group.name}"!`);
+        navigate(`/group/${groupId}`);
+        return;
+      }
+
+      // Add user to group
+      const { error: joinError } = await supabase
+        .from("group_members")
+        .insert({
+          tracker_id: groupId,
+          user_id: userId,
+          joined_at: new Date().toISOString(),
+        });
+
+      if (joinError) {
+        console.error("Join error:", joinError);
+        setError("Failed to join group");
+        setJoining(false);
+        return;
+      }
+
+      // Success!
+      alert(`✅ Successfully joined "${group.name}"!`);
+      navigate(`/group/${groupId}`);
+
+    } catch (err) {
+      console.error("Join error:", err);
+      setError("Something went wrong");
+      setJoining(false);
+    }
+  };
+
+  if (joining) {
+    return (
+      <div style={{ 
+        textAlign: "center", 
+        padding: 100,
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+      }}>
+        <div style={{ fontSize: 64, marginBottom: 20 }}>⏳</div>
+        <h2 style={{ margin: 0, fontSize: 24 }}>Joining group...</h2>
+        <div style={{ 
+          width: 60,
+          height: 60,
+          border: "4px solid #e5e7eb",
+          borderTop: "4px solid #3b82f6",
+          borderRadius: "50%",
+          animation: "spin 1s linear infinite",
+          marginTop: 20,
+        }} />
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ 
+        textAlign: "center", 
+        padding: 100,
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+      }}>
+        <div style={{ fontSize: 64, marginBottom: 20 }}>❌</div>
+        <h2 style={{ margin: 0, fontSize: 24, color: "#dc2626" }}>{error}</h2>
+        <button
+          onClick={() => navigate("/home")}
+          style={{
+            marginTop: 30,
+            padding: "14px 32px",
+            backgroundColor: "#3b82f6",
+            color: "white",
+            border: "none",
+            borderRadius: 8,
+            cursor: "pointer",
+            fontSize: 16,
+            fontWeight: 600,
+          }}
+        >
+          Go to Home
+        </button>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+// ============================================
+// MAIN APP COMPONENT
+// ============================================
 
 function App() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [profileComplete, setProfileComplete] = useState(false);
-const [checkingProfile, setCheckingProfile] = useState(true);
+  const [checkingProfile, setCheckingProfile] = useState(true);
 
- useEffect(() => {
-  checkSession();
+  useEffect(() => {
+    checkSession();
 
-  const { data: { subscription } } =
-    supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        checkProfileCompletion(session.user.id);
-      } else {
-        setLoading(false);
-        setCheckingProfile(false);
-      }
-    });
+    const { data: { subscription } } =
+      supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          checkProfileCompletion(session.user.id);
+        } else {
+          setLoading(false);
+          setCheckingProfile(false);
+        }
+      });
 
-  return () => subscription.unsubscribe();
-}, []);
-const checkSession = async () => {
-  const { data } = await supabase.auth.getSession();
-  setUser(data.session?.user ?? null);
-  
-  if (data.session?.user) {
-    await checkProfileCompletion(data.session.user.id);
-  }
-  
-  setLoading(false);
-  setCheckingProfile(false);
-};
+    return () => subscription.unsubscribe();
+  }, []);
 
-const checkProfileCompletion = async (userId: string) => {
-  try {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("name, phone, upi_id")
-      .eq("id", userId)
-      .maybeSingle();
-
-    const isComplete = !!(
-      profile?.name && 
-      profile?.phone && 
-      profile?.upi_id
-    );
-
-    setProfileComplete(isComplete);
-  } catch (error) {
-    console.error("Error checking profile:", error);
-    setProfileComplete(false);
-  } finally {
+  const checkSession = async () => {
+    const { data } = await supabase.auth.getSession();
+    setUser(data.session?.user ?? null);
+    
+    if (data.session?.user) {
+      await checkProfileCompletion(data.session.user.id);
+    }
+    
+    setLoading(false);
     setCheckingProfile(false);
-  }
-};
+  };
+
+  const checkProfileCompletion = async (userId: string) => {
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("name, phone, upi_id")
+        .eq("id", userId)
+        .maybeSingle();
+
+      const isComplete = !!(
+        profile?.name && 
+        profile?.phone && 
+        profile?.upi_id
+      );
+
+      setProfileComplete(isComplete);
+    } catch (error) {
+      console.error("Error checking profile:", error);
+      setProfileComplete(false);
+    } finally {
+      setCheckingProfile(false);
+    }
+  };
 
   const login = async () => {
     await supabase.auth.signInWithOAuth({
@@ -142,83 +324,91 @@ const checkProfileCompletion = async (userId: string) => {
       {user && profileComplete && <Navbar />}
 
       <Routes>
-  <Route path="/" element={<Navigate to="/home" replace />} />
+        <Route path="/" element={<Navigate to="/home" replace />} />
 
-  <Route
-    path="/home"
-    element={
-      !user ? (
-        <VyayaLoginPage login={login} />
-      ) : !profileComplete ? (
-        <Navigate to="/profile" replace />
-      ) : (
-        <Home />
-      )
-    }
-  />
-
-  <Route 
-    path="/profile" 
-    element={
-      user ? (
-        <Profile 
-          isOnboarding={!profileComplete} 
-          onComplete={() => setProfileComplete(true)}
+        <Route
+          path="/home"
+          element={
+            !user ? (
+              <VyayaLoginPage login={login} />
+            ) : !profileComplete ? (
+              <Navigate to="/profile" replace />
+            ) : (
+              <Home />
+            )
+          }
         />
-      ) : (
-        <Navigate to="/home" />
-      )
-    } 
-  />
 
-  <Route 
-    path="/create-group" 
-    element={
-      user && profileComplete ? <CreateGroup /> : <Navigate to={user ? "/profile" : "/home"} />
-    } 
-  />
-  
-  <Route 
-    path="/personal" 
-    element={
-      user && profileComplete ? <Personal /> : <Navigate to={user ? "/profile" : "/home"} />
-    } 
-  />
-  {/* ← NEW ROUTE FOR LOAN MANAGEMENT */}
-<Route 
-  path="/loans" 
-  element={
-    user && profileComplete ? <LoanManagement /> : <Navigate to={user ? "/profile" : "/home"} />
-  } 
-/>
-  <Route 
-    path="/join-group" 
-    element={
-      user && profileComplete ? <JoinGroup /> : <Navigate to={user ? "/profile" : "/home"} />
-    } 
-  />
-  
-  <Route 
-    path="/group/:id" 
-    element={
-      user && profileComplete ? <Group /> : <Navigate to={user ? "/profile" : "/home"} />
-    } 
-  />
-  
-  <Route 
-    path="/friends" 
-    element={
-      user && profileComplete ? <Friends /> : <Navigate to={user ? "/profile" : "/home"} />
-    } 
-  />
+        {/* ✅ JOIN URL ROUTE */}
+        <Route 
+          path="/join/:groupId" 
+          element={<AutoJoinGroup />}
+        />
 
-  <Route path="*" element={<Navigate to="/home" />} />
-</Routes>
+        <Route 
+          path="/profile" 
+          element={
+            user ? (
+              <Profile 
+                isOnboarding={!profileComplete} 
+                onComplete={() => setProfileComplete(true)}
+              />
+            ) : (
+              <Navigate to="/home" />
+            )
+          } 
+        />
 
+        <Route 
+          path="/create-group" 
+          element={
+            user && profileComplete ? <CreateGroup /> : <Navigate to={user ? "/profile" : "/home"} />
+          } 
+        />
+        
+        <Route 
+          path="/personal" 
+          element={
+            user && profileComplete ? <Personal /> : <Navigate to={user ? "/profile" : "/home"} />
+          } 
+        />
+
+        <Route 
+          path="/loans" 
+          element={
+            user && profileComplete ? <LoanManagement /> : <Navigate to={user ? "/profile" : "/home"} />
+          } 
+        />
+
+        <Route 
+          path="/join-group" 
+          element={
+            user && profileComplete ? <JoinGroup /> : <Navigate to={user ? "/profile" : "/home"} />
+          } 
+        />
+        
+        <Route 
+          path="/group/:id" 
+          element={
+            user && profileComplete ? <Group /> : <Navigate to={user ? "/profile" : "/home"} />
+          } 
+        />
+        
+        <Route 
+          path="/friends" 
+          element={
+            user && profileComplete ? <Friends /> : <Navigate to={user ? "/profile" : "/home"} />
+          } 
+        />
+
+        <Route path="*" element={<Navigate to="/home" />} />
+      </Routes>
     </>
   );
 }
 
+// VyayaLoginPage component stays exactly the same...
+// [Keep all your existing VyayaLoginPage code here - it's perfe
 // VYAYA LOGIN PAGE WITH MIND-BLOWING ANIMATIONS
 function VyayaLoginPage({ login }: { login: () => void }) {
   const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; delay: number }>>([]);

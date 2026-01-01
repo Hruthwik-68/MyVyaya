@@ -1,19 +1,18 @@
 // ============================================
-// GROUP.TSX - PART 1: IMPORTS, STATES, LOAD FUNCTIONS
+// GROUP.TSX - PART 1: IMPORTS, STATES, LOAD FUNCTIONS (FIXED)
+// ✅ All 10 bugs fixed in this complete rewrite
 // ============================================
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 
-// ← NEW: Import all new components
+// Components
 import CollapsibleSection from "../components/CollapsibleSection";
 import AdvancedFilters from "../components/AdvancedFilters";
 import type { FilterOptions, SortOptions } from "../components/AdvancedFilters";
 import GroupInfoPanel from "../components/GroupInfoPanel";
 import CustomBudgetCategories from "../components/Custombudgetcategories";
-
-// Existing components
 import AddExpenseForm from "../components/GroupComponents/AddExpenseForm";
 import MemberTags from "../components/GroupComponents/MemberTags";
 import MultiPersonSlider from "../components/GroupComponents/MultiPersonSlider";
@@ -60,7 +59,6 @@ export default function Group() {
   const [splits, setSplits] = useState<{ user_id: string; percent: number }[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const [showMineOnly, setShowMineOnly] = useState(true);
   const [pendingNow, setPendingNow] = useState(false);
 
   // Budget states
@@ -81,18 +79,17 @@ export default function Group() {
   // Wishlist states
   const [wishlistItems, setWishlistItems] = useState<any[]>([]);
   const [showWishlistModal, setShowWishlistModal] = useState(false);
-
   const [showReceiptScanner, setShowReceiptScanner] = useState(false);
 
   // Smart Split State
   const [useSmartSplit, setUseSmartSplit] = useState(true);
   const [updatingSplitMode, setUpdatingSplitMode] = useState(false);
 
-  // ← NEW: Advanced Filter & Sort States
+  // Advanced Filter & Sort States
   const [filters, setFilters] = useState<FilterOptions>({});
   const [sortOptions, setSortOptions] = useState<SortOptions>({ field: "date", direction: "desc" });
   
-  // ← NEW: Custom Categories State
+  // Custom Categories State
   const [customCategories, setCustomCategories] = useState<any[]>([]);
 
   // ------------ NAME HELPER ------------
@@ -123,13 +120,14 @@ export default function Group() {
       setGroupData(tracker);
       setUseSmartSplit(tracker.use_smart_split ?? true);
       
+      // ✅ FIX: Check admin status
       if (currentUser?.id === tracker.admin_user_id) {
         setIsAdmin(true);
       }
     }
   };
 
-  // ← NEW: LOAD CUSTOM CATEGORIES
+  // ------------ LOAD CUSTOM CATEGORIES ------------
   const loadCustomCategories = async () => {
     const { data } = await supabase
       .from("custom_categories")
@@ -139,7 +137,7 @@ export default function Group() {
     setCustomCategories(data || []);
   };
 
-  // ← NEW: MERGE DEFAULT + CUSTOM CATEGORIES (MEMOIZED)
+  // ------------ MERGE DEFAULT + CUSTOM CATEGORIES (MEMOIZED) ------------
   const allCategories = useMemo(() => {
     return [
       ...EXPENSE_CATEGORIES,
@@ -151,7 +149,7 @@ export default function Group() {
     ];
   }, [customCategories]);
 
-  // ------------ TOGGLE SMART SPLIT (Admin only) ------------
+  // ✅ FIX #4: TOGGLE SMART SPLIT - Force full reload
   const toggleSmartSplit = async () => {
     if (!isAdmin) {
       alert("⚠️ Only the group admin can change split mode!");
@@ -178,9 +176,14 @@ export default function Group() {
       if (error) throw error;
 
       setUseSmartSplit(newMode);
-      alert(`✅ Split mode updated to ${newMode ? "Smart" : "Normal"} Split!`);
       
-      await loadPayments();
+      // ✅ FIX: Force full data reload
+      await Promise.all([
+        loadExpenses(),
+        loadPayments(),
+      ]);
+      
+      alert(`✅ Split mode updated to ${newMode ? "Smart" : "Normal"} Split!`);
     } catch (error) {
       console.error("Error updating split mode:", error);
       alert("❌ Failed to update split mode");
@@ -220,9 +223,9 @@ export default function Group() {
     );
   };
 
-  // ------------ LOAD EXPENSES ------------
+  // ✅ FIX #3: LOAD EXPENSES - Ensure state updates immediately
   const loadExpenses = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("expenses")
       .select(`
         id,
@@ -239,6 +242,12 @@ export default function Group() {
       .eq("tracker_id", id)
       .order("date", { ascending: false });
 
+    if (error) {
+      console.error("Error loading expenses:", error);
+      return;
+    }
+
+    // ✅ FIX: Update both expenses and filteredExpenses
     setExpenses(data || []);
     setFilteredExpenses(data || []);
   };
@@ -282,6 +291,7 @@ export default function Group() {
     setWishlistItems(data || []);
   };
 
+  // ------------ INITIAL LOAD ------------
   useEffect(() => {
     loadUser();
   }, []);
@@ -331,21 +341,19 @@ export default function Group() {
 // CONTINUE IN PART 2...
 
 // ============================================
-// GROUP.TSX - PART 2: ADVANCED FILTERS + MEMOIZED CALCULATIONS
+// GROUP.TSX - PART 2: ADVANCED FILTERS + BUSINESS LOGIC (FIXED)
 // ============================================
 
-  // ← NEW: APPLY ADVANCED FILTERS & SORTING (OPTIMIZED with useMemo)
+  // ✅ FIX #9: APPLY ADVANCED FILTERS & SORTING (All user filters now working)
   const filteredAndSortedExpenses = useMemo(() => {
     let result = [...filteredExpenses];
 
-    // User filters
+    // ✅ FIX: User filters - properly implemented
     if (filters.showOnlyMe) {
       result = result.filter(exp => exp.paid_by === currentUser?.id);
-    }
-    if (filters.showOnlyOthers) {
+    } else if (filters.showOnlyOthers) {
       result = result.filter(exp => exp.paid_by !== currentUser?.id);
-    }
-    if (filters.specificUser) {
+    } else if (filters.specificUser) {
       result = result.filter(exp => exp.paid_by === filters.specificUser);
     }
 
@@ -404,7 +412,7 @@ export default function Group() {
     return result;
   }, [filteredExpenses, filters, sortOptions, currentUser?.id, showName]);
 
-  // ← NEW: MEMOIZED CALLBACKS for filters
+  // MEMOIZED CALLBACKS for filters
   const handleFilterChange = useCallback((newFilters: FilterOptions) => {
     setFilters(newFilters);
   }, []);
@@ -413,7 +421,7 @@ export default function Group() {
     setSortOptions(newSort);
   }, []);
 
-  // ------------ ADD EXPENSE ------------
+  // ✅ FIX #3: ADD EXPENSE - Proper reload and alert
   const addExpense = async () => {
     if (!amount || !paidBy) return alert("Enter amount & select payer");
     if (!participants.length) return alert("Select at least one participant");
@@ -439,22 +447,33 @@ export default function Group() {
       .select("*")
       .single();
 
-    if (!error) {
-      await supabase.from("expense_splits").insert(
-        splits.map((s) => ({
-          expense_id: expense.id,
-          user_id: s.user_id,
-          percent: s.percent,
-        }))
-      );
+    if (error) {
+      console.error("Error adding expense:", error);
+      alert("❌ Failed to add expense");
+      setLoading(false);
+      return;
     }
 
+    // Add splits
+    await supabase.from("expense_splits").insert(
+      splits.map((s) => ({
+        expense_id: expense.id,
+        user_id: s.user_id,
+        percent: s.percent,
+      }))
+    );
+
+    // ✅ FIX: Reload data and reset form
+    await loadExpenses();
+    await loadPayments();
+    
     setAmount("");
     setDesc("");
     setCategory("General");
     setPaidBy(currentUser?.id || "");
     setLoading(false);
-    loadExpenses();
+    
+    alert("✅ Expense added successfully!");
   };
 
   // ------------ SAVE BUDGET ------------
@@ -567,7 +586,7 @@ export default function Group() {
   }, [budgets]);
 
   // ============================================
-  // BALANCES CALCULATION (MEMOIZED for O(1) access)
+  // BALANCES CALCULATION (MEMOIZED)
   // ============================================
   const balances = useMemo(() => {
     const bal: Record<string, number> = {};
@@ -683,28 +702,70 @@ export default function Group() {
         p.to_user === s.to
     ), [payments]);
 
-  // ← NEW: UPI PAYMENT FOR SETTLEMENTS
+  // ✅ FIX #5 & #6: UPI PAYMENT + NUMBER PAY
   const handlePayViaUPI = async (settlement: any) => {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("upi_id, name")
+      .select("upi_id, phone_number, name")
       .eq("id", settlement.to)
       .single();
 
-    if (!profile?.upi_id) {
-      alert(`${showName(settlement.to)} hasn't added their UPI ID yet!`);
+    if (!profile?.upi_id && !profile?.phone_number) {
+      alert(`${showName(settlement.to)} hasn't added their UPI ID or phone number yet!`);
       return;
     }
 
-    const upiUrl = `upi://pay?pa=${profile.upi_id}&pn=${encodeURIComponent(profile.name)}&am=${settlement.amount}&cu=INR&tn=${encodeURIComponent(groupData?.name || 'Vyaya Settlement')}`;
-    
-    window.location.href = upiUrl;
-    
+    // Show payment options if both available
+    if (profile.upi_id && profile.phone_number) {
+      const useUPI = confirm(
+        `Choose payment method:\n\n` +
+        `OK = UPI ID (GPay/PhonePe/Paytm)\n` +
+        `Cancel = Phone Number (PhonePe Number Pay)`
+      );
+
+      if (useUPI) {
+        // UPI Payment
+        const upiUrl = `upi://pay?pa=${profile.upi_id}&pn=${encodeURIComponent(profile.name)}&am=${settlement.amount}&cu=INR&tn=${encodeURIComponent(groupData?.name || 'Vyaya Settlement')}`;
+        window.location.href = upiUrl;
+      } else {
+        // Number Pay via PhonePe
+        const phonePayUrl = `phonepe://pay?pa=${profile.phone_number}@ybl&pn=${encodeURIComponent(profile.name)}&am=${settlement.amount}&cu=INR&tn=${encodeURIComponent(groupData?.name || 'Settlement')}`;
+        window.location.href = phonePayUrl;
+        
+        // Fallback - show phone number
+        setTimeout(() => {
+          alert(
+            `Pay ₹${settlement.amount} to:\n\n` +
+            `${profile.name}\n` +
+            `Phone: ${profile.phone_number}\n\n` +
+            `Use any UPI app with phone number`
+          );
+        }, 1500);
+      }
+    } else if (profile.upi_id) {
+      // Only UPI available
+      const upiUrl = `upi://pay?pa=${profile.upi_id}&pn=${encodeURIComponent(profile.name)}&am=${settlement.amount}&cu=INR&tn=${encodeURIComponent(groupData?.name || 'Vyaya Settlement')}`;
+      window.location.href = upiUrl;
+    } else if (profile.phone_number) {
+      // Only phone number available
+      const phonePayUrl = `phonepe://pay?pa=${profile.phone_number}@ybl&pn=${encodeURIComponent(profile.name)}&am=${settlement.amount}&cu=INR&tn=${encodeURIComponent(groupData?.name || 'Settlement')}`;
+      window.location.href = phonePayUrl;
+      
+      setTimeout(() => {
+        alert(
+          `Pay ₹${settlement.amount} to:\n\n` +
+          `${profile.name}\n` +
+          `Phone: ${profile.phone_number}`
+        );
+      }, 1500);
+    }
+
+    // Confirm payment after delay
     setTimeout(() => {
       if (window.confirm("After completing payment, click OK to mark as paid.")) {
         markPaid(settlement);
       }
-    }, 1000);
+    }, 2500);
   };
 
   const markPaid = async (s: any) => {
@@ -741,7 +802,7 @@ export default function Group() {
     loadPayments();
   };
 
-  // ← NEW: DELETE GROUP (Admin only, only if settled)
+  // DELETE GROUP (Admin only, settled only)
   const deleteGroup = async () => {
     if (!isAdmin) {
       alert("⚠️ Only the group admin can delete this group!");
@@ -804,7 +865,8 @@ export default function Group() {
 // CONTINUE IN PART 3...
 
 // ============================================
-// GROUP.TSX - PART 3: UI RENDERING (HEADER TO ADD EXPENSE)
+// GROUP.TSX - PART 3: UI RENDERING (FIXED)
+// ✅ FIX #8: Budget made collapsible
 // ============================================
 
   return (
@@ -973,11 +1035,12 @@ export default function Group() {
       <GroupInfoPanel
         groupId={id!}
         groupName={groupData?.name || "Group"}
+        groupCode={groupData?.group_code || "------"}  // ✅ ADD THIS LINE
         groupPassword={groupData?.group_password}
         isAdmin={isAdmin}
       />
 
-      {/* ← FIXED: Advanced Filters with month/year/export INSIDE */}
+      {/* Advanced Filters */}
       <AdvancedFilters
         currentUserId={currentUser?.id}
         members={members}
@@ -997,21 +1060,14 @@ export default function Group() {
         totalExpenses={filteredAndSortedExpenses.length}
       />
 
-      {/* Budget Overview */}
+      {/* ✅ FIX #8: Budget Overview - Now Collapsible */}
       {budgets.length > 0 && (
-        <div
-          style={{
-            backgroundColor: "#f8f9fa",
-            border: "1px solid #dee2e6",
-            borderRadius: 10,
-            padding: "15px",
-            marginBottom: 20,
-          }}
+        <CollapsibleSection 
+          title={`Budget Overview - ${new Date(filterYear, filterMonth).toLocaleDateString("en-US", { month: "long", year: "numeric" })}`}
+          icon="📊"
+          defaultOpen={false}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 15 }}>
-            <h3 style={{ margin: 0, fontSize: isMobile ? 16 : 18 }}>
-              📊 Budget Overview - {new Date(filterYear, filterMonth).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-            </h3>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 15 }}>
             <button
               onClick={() => setShowBudgetModal(true)}
               style={{
@@ -1025,7 +1081,7 @@ export default function Group() {
                 fontSize: 13,
               }}
             >
-              ⚙️ Manage
+              ⚙️ Manage Budgets
             </button>
           </div>
 
@@ -1108,10 +1164,10 @@ export default function Group() {
               );
             })}
           </div>
-        </div>
+        </CollapsibleSection>
       )}
 
-      {/* ← FIXED: Add Expense wrapped in CollapsibleSection with defaultOpen={false} */}
+      {/* Add Expense - Collapsible */}
       <CollapsibleSection title="Add Expense" icon="💸" defaultOpen={false}>
         {/* Wishlist Selector */}
         {wishlistItems.length > 0 && (
@@ -1222,8 +1278,7 @@ export default function Group() {
         </button>
       </CollapsibleSection>
 
-
-      {/* Analytics Dashboard - ← FIXED: defaultOpen={false} */}
+      {/* Analytics Dashboard */}
       {showAnalytics && (
         <CollapsibleSection title="Analytics Dashboard" icon="📊" defaultOpen={false}>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: 20 }}>
@@ -1296,12 +1351,12 @@ export default function Group() {
         </CollapsibleSection>
       )}
 
-      {/* ← FIXED: Expenses - defaultOpen={true} (ONLY ONE that stays open) */}
+      {/* Expenses - ONLY ONE defaultOpen={true} */}
       <CollapsibleSection title="Expenses" icon="📋" badge={filteredAndSortedExpenses.length} defaultOpen={true}>
         <ExpensesTable expenses={filteredAndSortedExpenses} currentUser={currentUser} showName={showName} />
       </CollapsibleSection>
 
-      {/* ← FIXED: Balance - defaultOpen={false} */}
+      {/* Balance */}
       <CollapsibleSection 
         title="Your Balance" 
         icon="💰" 
@@ -1312,7 +1367,7 @@ export default function Group() {
         <BalanceSummary myBalance={balances[currentUser?.id] || 0} />
       </CollapsibleSection>
 
-      {/* ← FIXED: Settlements - defaultOpen={false} */}
+      {/* Settlements */}
       <CollapsibleSection title="Who should pay whom" icon="💸" badge={shownSettlements.length} defaultOpen={false}>
         <SettlementsTable
           settlements={shownSettlements}
@@ -1325,7 +1380,7 @@ export default function Group() {
         />
       </CollapsibleSection>
 
-      {/* ← FIXED: Pending Payments - defaultOpen={false} */}
+      {/* Pending Payments */}
       <CollapsibleSection 
         title="Pending Confirmations" 
         icon="⏳" 
@@ -1336,7 +1391,7 @@ export default function Group() {
         <PendingPayments payments={payments} currentUser={currentUser} confirmPayment={confirmPayment} showName={showName} />
       </CollapsibleSection>
 
-      {/* ← FIXED: Payment History - defaultOpen={false} */}
+      {/* Payment History */}
       <CollapsibleSection 
         title="Payment History" 
         icon="📜" 
@@ -1347,6 +1402,7 @@ export default function Group() {
         <PaymentHistory payments={payments} currentUser={currentUser} showName={showName} />
       </CollapsibleSection>
 
+      {/* Settlements Graph */}
       <SettlementsGraph members={members} settlements={shownSettlements} currentUserId={currentUser?.id} showName={showName} />
 
       {/* Delete Group Button (Admin only) */}
@@ -1359,7 +1415,7 @@ export default function Group() {
         </div>
       )}
 
-      {/* Budget Modal with Custom Categories */}
+      {/* MODALS - Budget, Wishlist, Receipt Scanner */}
       {showBudgetModal && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }} onClick={() => setShowBudgetModal(false)}>
           <div style={{ backgroundColor: "white", borderRadius: 10, padding: 30, maxWidth: 800, width: "90%", maxHeight: "80vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
@@ -1380,7 +1436,6 @@ export default function Group() {
               </div>
             ))}
 
-            {/* Custom Budget Categories */}
             <CustomBudgetCategories
               trackerId={id!}
               userId={currentUser?.id}
@@ -1395,7 +1450,6 @@ export default function Group() {
         </div>
       )}
 
-      {/* Wishlist Modal */}
       {showWishlistModal && (
         <WishlistModal
           trackerId={id!}
@@ -1415,7 +1469,6 @@ export default function Group() {
         />
       )}
 
-      {/* Receipt Scanner */}
       {showReceiptScanner && (
         <ReceiptScanner
           onScanComplete={(data) => {
@@ -1430,5 +1483,3 @@ export default function Group() {
     </div>
   );
 }
-
-

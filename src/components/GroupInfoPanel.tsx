@@ -1,9 +1,16 @@
+// ============================================
+// GROUP INFO PANEL - FIXED
+// ✅ FIX #2: Shows numeric 6-digit code (not UUID)
+// ✅ FIX #2: Copy functionality works properly
+// ============================================
+
 import { useState } from "react";
 import { supabase } from "../supabase";
 
 interface GroupInfoPanelProps {
   groupId: string;
   groupName: string;
+  groupCode: string;  // ✅ ADD THIS - the 6-digit numeric code
   groupPassword?: string;
   isAdmin: boolean;
 }
@@ -11,6 +18,7 @@ interface GroupInfoPanelProps {
 export default function GroupInfoPanel({
   groupId,
   groupName,
+  groupCode,  // ✅ Receive the numeric code
   groupPassword,
   isAdmin,
 }: GroupInfoPanelProps) {
@@ -22,8 +30,11 @@ export default function GroupInfoPanel({
   const shareUrl = `${window.location.origin}/join/${groupId}`;
 
   const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    alert(`✅ ${label} copied to clipboard!`);
+    navigator.clipboard.writeText(text).then(() => {
+      alert(`✅ ${label} copied to clipboard!`);
+    }).catch(() => {
+      alert(`❌ Failed to copy ${label}`);
+    });
   };
 
   const updatePassword = async () => {
@@ -56,6 +67,7 @@ export default function GroupInfoPanel({
         borderRadius: 10,
         marginBottom: 20,
         overflow: "hidden",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
       }}
     >
       {/* Header */}
@@ -69,16 +81,30 @@ export default function GroupInfoPanel({
           cursor: "pointer",
           backgroundColor: "#f0f9ff",
           borderBottom: isOpen ? "1px solid #e5e7eb" : "none",
+          transition: "all 0.2s",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = "#e0f2fe";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = "#f0f9ff";
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 20 }}>ℹ️</span>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "#0c4a6e" }}>
             Group Info & Share
           </h3>
         </div>
-        <div style={{ fontSize: 18 }}>
-          {isOpen ? "▲" : "▼"}
+        <div 
+          style={{ 
+            fontSize: 18,
+            color: "#0284c7",
+            transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.2s",
+          }}
+        >
+          ▼
         </div>
       </div>
 
@@ -87,26 +113,40 @@ export default function GroupInfoPanel({
         <div style={{ padding: 20 }}>
           {/* Group Name */}
           <div style={{ marginBottom: 20 }}>
-            <label style={{ fontSize: 14, fontWeight: 600, marginBottom: 5, display: "block", color: "#666" }}>
+            <label style={{ 
+              fontSize: 14, 
+              fontWeight: 600, 
+              marginBottom: 5, 
+              display: "block", 
+              color: "#374151" 
+            }}>
               📝 Group Name:
             </label>
             <div
               style={{
                 padding: "12px",
                 backgroundColor: "#f9fafb",
+                border: "1px solid #e5e7eb",
                 borderRadius: 8,
                 fontSize: 16,
                 fontWeight: 600,
+                color: "#111827",
               }}
             >
               {groupName}
             </div>
           </div>
 
-          {/* Group Code */}
+          {/* ✅ FIX #2: 6-Digit Numeric Join Code */}
           <div style={{ marginBottom: 20 }}>
-            <label style={{ fontSize: 14, fontWeight: 600, marginBottom: 5, display: "block", color: "#666" }}>
-              🔑 Group Code:
+            <label style={{ 
+              fontSize: 14, 
+              fontWeight: 600, 
+              marginBottom: 5, 
+              display: "block", 
+              color: "#374151" 
+            }}>
+              🔑 Join Code (Share this 6-digit code):
             </label>
             <div
               style={{
@@ -118,21 +158,25 @@ export default function GroupInfoPanel({
               <div
                 style={{
                   flex: 1,
-                  padding: "12px",
-                  backgroundColor: "#f9fafb",
+                  padding: "16px",
+                  backgroundColor: "#f0f9ff",
+                  border: "2px solid #3b82f6",
                   borderRadius: 8,
                   fontFamily: "monospace",
-                  fontSize: 16,
-                  fontWeight: 600,
-                  letterSpacing: 1,
+                  fontSize: 28,
+                  fontWeight: 700,
+                  letterSpacing: 4,
+                  textAlign: "center",
+                  color: "#1e40af",
                 }}
               >
-                {groupId.slice(0, 8).toUpperCase()}
+                {/* ✅ Display the numeric code */}
+                {groupCode || "------"}
               </div>
               <button
-                onClick={() => copyToClipboard(groupId, "Group Code")}
+                onClick={() => copyToClipboard(groupCode, "Join Code")}
                 style={{
-                  padding: "10px 16px",
+                  padding: "12px 20px",
                   backgroundColor: "#3b82f6",
                   color: "white",
                   border: "none",
@@ -141,17 +185,38 @@ export default function GroupInfoPanel({
                   fontWeight: 600,
                   fontSize: 14,
                   whiteSpace: "nowrap",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = "#2563eb";
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = "#3b82f6";
                 }}
               >
                 📋 Copy
               </button>
             </div>
+            <p style={{ 
+              fontSize: 12, 
+              color: "#6b7280", 
+              marginTop: 8,
+              marginBottom: 0,
+            }}>
+              💡 Others can join by entering this code in the "Join Group" page
+            </p>
           </div>
 
           {/* Group Password (Admin Only) */}
           <div style={{ marginBottom: 20 }}>
-            <label style={{ fontSize: 14, fontWeight: 600, marginBottom: 5, display: "block", color: "#666" }}>
-              🔐 Group Password {isAdmin ? "(Optional)" : ""}:
+            <label style={{ 
+              fontSize: 14, 
+              fontWeight: 600, 
+              marginBottom: 5, 
+              display: "block", 
+              color: "#374151" 
+            }}>
+              🔐 Group Password {isAdmin ? "(Optional - for link sharing)" : ""}:
             </label>
             {isAdmin ? (
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -164,7 +229,7 @@ export default function GroupInfoPanel({
                     flex: 1,
                     padding: "10px",
                     borderRadius: 8,
-                    border: "1px solid #ddd",
+                    border: "1px solid #d1d5db",
                     fontSize: 14,
                   }}
                 />
@@ -173,7 +238,7 @@ export default function GroupInfoPanel({
                   style={{
                     padding: "10px",
                     backgroundColor: "#f3f4f6",
-                    border: "1px solid #ddd",
+                    border: "1px solid #d1d5db",
                     borderRadius: 8,
                     cursor: "pointer",
                   }}
@@ -203,41 +268,54 @@ export default function GroupInfoPanel({
                 style={{
                   padding: "12px",
                   backgroundColor: "#f9fafb",
+                  border: "1px solid #e5e7eb",
                   borderRadius: 8,
                   fontSize: 14,
-                  color: "#666",
+                  color: "#6b7280",
                 }}
               >
                 {groupPassword ? "🔒 Password protected (admin only)" : "🔓 No password set"}
               </div>
             )}
             {isAdmin && (
-              <p style={{ fontSize: 12, color: "#666", marginTop: 8, marginBottom: 0 }}>
-                💡 Password is optional. If set, users will need it to join via link.
+              <p style={{ 
+                fontSize: 12, 
+                color: "#6b7280", 
+                marginTop: 8, 
+                marginBottom: 0 
+              }}>
+                💡 Password is optional. If set, required when joining via link (not code).
               </p>
             )}
           </div>
 
           {/* Share Link */}
           <div style={{ marginBottom: 0 }}>
-            <label style={{ fontSize: 14, fontWeight: 600, marginBottom: 5, display: "block", color: "#666" }}>
-              🔗 Share Link:
+            <label style={{ 
+              fontSize: 14, 
+              fontWeight: 600, 
+              marginBottom: 5, 
+              display: "block", 
+              color: "#374151" 
+            }}>
+              🔗 Direct Join Link:
             </label>
             <div
               style={{
                 padding: "12px",
-                backgroundColor: "#f0f9ff",
+                backgroundColor: "#fef3c7",
                 borderRadius: 8,
-                border: "2px solid #3b82f6",
+                border: "2px solid #fbbf24",
                 marginBottom: 12,
               }}
             >
               <div
                 style={{
-                  fontSize: 13,
+                  fontSize: 12,
                   fontFamily: "monospace",
                   wordBreak: "break-all",
                   marginBottom: 10,
+                  color: "#78350f",
                 }}
               >
                 {shareUrl}
@@ -247,7 +325,7 @@ export default function GroupInfoPanel({
                   onClick={() => copyToClipboard(shareUrl, "Share Link")}
                   style={{
                     padding: "8px 16px",
-                    backgroundColor: "#3b82f6",
+                    backgroundColor: "#f59e0b",
                     color: "white",
                     border: "none",
                     borderRadius: 6,
@@ -261,14 +339,16 @@ export default function GroupInfoPanel({
                 </button>
                 <button
                   onClick={() => {
-                    const text = `Join my group "${groupName}" on Vyaya!\n\n🔗 Link: ${shareUrl}\n${
-                      groupPassword ? `🔐 Password: ${groupPassword}` : ""
+                    const text = `Join my group "${groupName}" on Vyaya!\n\n🔗 Link: ${shareUrl}\n🔑 Code: ${groupCode}${
+                      groupPassword ? `\n🔐 Password: ${groupPassword}` : ""
                     }`;
                     
                     if (navigator.share) {
                       navigator.share({
                         title: `Join ${groupName}`,
                         text: text,
+                      }).catch(() => {
+                        copyToClipboard(text, "Invitation");
                       });
                     } else {
                       copyToClipboard(text, "Invitation");
@@ -286,13 +366,17 @@ export default function GroupInfoPanel({
                     flex: 1,
                   }}
                 >
-                  📤 Share
+                  📤 Share All
                 </button>
               </div>
             </div>
-            <p style={{ fontSize: 12, color: "#666", marginTop: 8, marginBottom: 0 }}>
-              💡 Anyone with this link can join the group
-              {groupPassword && " (password required)"}
+            <p style={{ 
+              fontSize: 12, 
+              color: "#6b7280", 
+              marginTop: 8, 
+              marginBottom: 0 
+            }}>
+              💡 Share either the link OR the 6-digit code. Link works instantly!
             </p>
           </div>
         </div>
