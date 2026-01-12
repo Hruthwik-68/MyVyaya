@@ -1,10 +1,13 @@
 // ============================================
-// EXPENSES TABLE - FIXED IMPORT PATH
-// ✅ Correct import for supabase
+// EXPENSES TABLE - COMPLETELY REDESIGNED
+// ✅ Participants visible on mobile
+// ✅ Delete button (only for creator)
+// ✅ Pagination (default 10, customizable)
+// ✅ Perfect responsive UI
 // ============================================
 
 import React, { useState, useMemo } from "react";
-import { supabase } from "../../supabase"; // ✅ FIXED: Correct path from GroupComponents folder
+import { supabase } from "../../supabase";
 
 interface Props {
   expenses: any[];
@@ -387,20 +390,85 @@ export default function ExpensesTable({
     );
   }
 
-  // TABLET & DESKTOP VIEW (rest of code continues...)
+  // TABLET & DESKTOP VIEW
   return (
     <>
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", backgroundColor: "#fff" }}>
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            backgroundColor: "#fff",
+          }}
+        >
           <thead>
-            <tr style={{ backgroundColor: "#f9fafb", borderBottom: "2px solid #e5e7eb" }}>
-              <th style={{ padding: "12px", textAlign: "left", fontWeight: 600, fontSize: 14, color: "#111827" }}>Date</th>
-              <th style={{ padding: "12px", textAlign: "left", fontWeight: 600, fontSize: 14, color: "#111827" }}>Description</th>
-              <th style={{ padding: "12px", textAlign: "left", fontWeight: 600, fontSize: 14, color: "#111827" }}>Category</th>
-              <th style={{ padding: "12px", textAlign: "right", fontWeight: 600, fontSize: 14, color: "#111827" }}>Amount</th>
-              <th style={{ padding: "12px", textAlign: "left", fontWeight: 600, fontSize: 14, color: "#111827" }}>Paid By</th>
-              <th style={{ padding: "12px", textAlign: "left", fontWeight: 600, fontSize: 14, color: "#111827" }}>Participants</th>
-              <th style={{ padding: "12px", textAlign: "center", fontWeight: 600, fontSize: 14, color: "#111827" }}>Actions</th>
+            <tr style={{ 
+              backgroundColor: "#f9fafb", 
+              borderBottom: "2px solid #e5e7eb" 
+            }}>
+              <th style={{ 
+                padding: "12px", 
+                textAlign: "left", 
+                fontWeight: 600, 
+                fontSize: 14,
+                color: "#111827",
+              }}>
+                Date
+              </th>
+              <th style={{ 
+                padding: "12px", 
+                textAlign: "left", 
+                fontWeight: 600, 
+                fontSize: 14,
+                color: "#111827",
+              }}>
+                Description
+              </th>
+              <th style={{ 
+                padding: "12px", 
+                textAlign: "left", 
+                fontWeight: 600, 
+                fontSize: 14,
+                color: "#111827",
+              }}>
+                Category
+              </th>
+              <th style={{ 
+                padding: "12px", 
+                textAlign: "right", 
+                fontWeight: 600, 
+                fontSize: 14,
+                color: "#111827",
+              }}>
+                Amount
+              </th>
+              <th style={{ 
+                padding: "12px", 
+                textAlign: "left", 
+                fontWeight: 600, 
+                fontSize: 14,
+                color: "#111827",
+              }}>
+                Paid By
+              </th>
+              <th style={{ 
+                padding: "12px", 
+                textAlign: "left", 
+                fontWeight: 600, 
+                fontSize: 14,
+                color: "#111827",
+              }}>
+                Participants
+              </th>
+              <th style={{ 
+                padding: "12px", 
+                textAlign: "center", 
+                fontWeight: 600, 
+                fontSize: 14,
+                color: "#111827",
+              }}>
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -409,21 +477,90 @@ export default function ExpensesTable({
               const isDeleting = deletingId === exp.id;
 
               return (
-                <tr key={exp.id} style={{ borderBottom: "1px solid #e5e7eb", backgroundColor: index % 2 === 0 ? "#fff" : "#f9fafb" }}>
-                  <td style={{ padding: "12px", fontSize: 13, color: "#6b7280" }}>{new Date(exp.date).toLocaleDateString()}</td>
-                  <td style={{ padding: "12px", fontSize: 14, fontWeight: 500, color: "#111827" }}>{exp.description || "No description"}</td>
-                  <td style={{ padding: "12px", fontSize: 13, color: "#6b7280" }}>{exp.category || "General"}</td>
-                  <td style={{ padding: "12px", textAlign: "right", fontSize: 16, fontWeight: 600, color: "#dc2626" }}>₹{Number(exp.amount).toFixed(2)}</td>
-                  <td style={{ padding: "12px", fontSize: 14, fontWeight: 500, color: "#111827" }}>
+                <tr
+                  key={exp.id}
+                  style={{
+                    borderBottom: "1px solid #e5e7eb",
+                    backgroundColor: index % 2 === 0 ? "#fff" : "#f9fafb",
+                  }}
+                >
+                  <td style={{ 
+                    padding: "12px", 
+                    fontSize: 13,
+                    color: "#6b7280",
+                  }}>
+                    {new Date(exp.date).toLocaleDateString()}
+                  </td>
+                  <td style={{ 
+                    padding: "12px", 
+                    fontSize: 14, 
+                    fontWeight: 500,
+                    color: "#111827",
+                  }}>
+                    {exp.description || "No description"}
+                  </td>
+                  <td style={{ 
+                    padding: "12px", 
+                    fontSize: 13,
+                    color: "#6b7280",
+                  }}>
+                    {exp.category || "General"}
+                  </td>
+                  <td style={{ 
+                    padding: "12px", 
+                    textAlign: "right", 
+                    fontSize: 16, 
+                    fontWeight: 600,
+                    color: "#dc2626",
+                  }}>
+                    ₹{Number(exp.amount).toFixed(2)}
+                  </td>
+                  <td style={{ 
+                    padding: "12px", 
+                    fontSize: 14,
+                    fontWeight: 500,
+                    color: "#111827",
+                  }}>
                     {showName(exp.paid_by)}
                     {exp.paid_by === currentUser?.id && (
-                      <span style={{ marginLeft: 8, fontSize: 11, backgroundColor: "#dcfce7", color: "#166534", padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>YOU</span>
+                      <span style={{ 
+                        marginLeft: 8,
+                        fontSize: 11,
+                        backgroundColor: "#dcfce7",
+                        color: "#166534",
+                        padding: "2px 6px",
+                        borderRadius: 4,
+                        fontWeight: 600,
+                      }}>
+                        YOU
+                      </span>
                     )}
                   </td>
                   <td style={{ padding: "12px" }}>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, maxWidth: 250 }}>
+                    <div style={{ 
+                      display: "flex", 
+                      flexWrap: "wrap", 
+                      gap: 4,
+                      maxWidth: 250,
+                    }}>
                       {exp.expense_splits?.map((split: any) => (
-                        <div key={split.user_id} style={{ backgroundColor: split.user_id === currentUser?.id ? "#dbeafe" : "#f3f4f6", border: `1px solid ${split.user_id === currentUser?.id ? "#3b82f6" : "#d1d5db"}`, padding: "3px 8px", borderRadius: 5, fontSize: 12, fontWeight: 500, color: "#374151", whiteSpace: "nowrap" }}>
+                        <div
+                          key={split.user_id}
+                          style={{
+                            backgroundColor: split.user_id === currentUser?.id 
+                              ? "#dbeafe" 
+                              : "#f3f4f6",
+                            border: `1px solid ${split.user_id === currentUser?.id 
+                              ? "#3b82f6" 
+                              : "#d1d5db"}`,
+                            padding: "3px 8px",
+                            borderRadius: 5,
+                            fontSize: 12,
+                            fontWeight: 500,
+                            color: "#374151",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
                           {showName(split.user_id)} ({split.percent}%)
                         </div>
                       ))}
@@ -431,11 +568,31 @@ export default function ExpensesTable({
                   </td>
                   <td style={{ padding: "12px", textAlign: "center" }}>
                     {canDelete ? (
-                      <button onClick={() => handleDelete(exp.id, exp.created_by)} disabled={isDeleting} style={{ padding: "6px 14px", backgroundColor: isDeleting ? "#9ca3af" : "#dc2626", color: "white", border: "none", borderRadius: 6, cursor: isDeleting ? "not-allowed" : "pointer", fontWeight: 600, fontSize: 12, whiteSpace: "nowrap" }}>
+                      <button
+                        onClick={() => handleDelete(exp.id, exp.created_by)}
+                        disabled={isDeleting}
+                        style={{
+                          padding: "6px 14px",
+                          backgroundColor: isDeleting ? "#9ca3af" : "#dc2626",
+                          color: "white",
+                          border: "none",
+                          borderRadius: 6,
+                          cursor: isDeleting ? "not-allowed" : "pointer",
+                          fontWeight: 600,
+                          fontSize: 12,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
                         {isDeleting ? "⏳" : "🗑️"}
                       </button>
                     ) : (
-                      <span style={{ fontSize: 12, color: "#9ca3af", fontStyle: "italic" }}>—</span>
+                      <span style={{ 
+                        fontSize: 12, 
+                        color: "#9ca3af",
+                        fontStyle: "italic",
+                      }}>
+                        —
+                      </span>
                     )}
                   </td>
                 </tr>
@@ -447,15 +604,57 @@ export default function ExpensesTable({
 
       {/* Desktop Pagination */}
       {totalPages > 1 && (
-        <div style={{ marginTop: 20, padding: 20, backgroundColor: "#f9fafb", borderRadius: 10, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 15 }}>
+        <div style={{ 
+          marginTop: 20,
+          padding: 20,
+          backgroundColor: "#f9fafb",
+          borderRadius: 10,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 15,
+        }}>
           <div style={{ fontSize: 14, color: "#6b7280" }}>
             Showing {startIndex + 1}-{Math.min(endIndex, expenses.length)} of {expenses.length} expenses
           </div>
 
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} style={{ padding: "8px 16px", backgroundColor: currentPage === 1 ? "#e5e7eb" : "#3b82f6", color: currentPage === 1 ? "#9ca3af" : "white", border: "none", borderRadius: 6, cursor: currentPage === 1 ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600 }}>⏮️ First</button>
-            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} style={{ padding: "8px 16px", backgroundColor: currentPage === 1 ? "#e5e7eb" : "#3b82f6", color: currentPage === 1 ? "#9ca3af" : "white", border: "none", borderRadius: 6, cursor: currentPage === 1 ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600 }}>◀️ Previous</button>
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              style={{
+                padding: "8px 16px",
+                backgroundColor: currentPage === 1 ? "#e5e7eb" : "#3b82f6",
+                color: currentPage === 1 ? "#9ca3af" : "white",
+                border: "none",
+                borderRadius: 6,
+                cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
+              ⏮️ First
+            </button>
+            
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              style={{
+                padding: "8px 16px",
+                backgroundColor: currentPage === 1 ? "#e5e7eb" : "#3b82f6",
+                color: currentPage === 1 ? "#9ca3af" : "white",
+                border: "none",
+                borderRadius: 6,
+                cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
+              ◀️ Previous
+            </button>
 
+            {/* Page numbers */}
             <div style={{ display: "flex", gap: 4 }}>
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 let pageNum;
@@ -470,20 +669,85 @@ export default function ExpensesTable({
                 }
 
                 return (
-                  <button key={i} onClick={() => setCurrentPage(pageNum)} style={{ padding: "8px 12px", backgroundColor: currentPage === pageNum ? "#3b82f6" : "white", color: currentPage === pageNum ? "white" : "#374151", border: "1px solid #d1d5db", borderRadius: 6, cursor: "pointer", fontSize: 13, fontWeight: currentPage === pageNum ? 600 : 400, minWidth: 40 }}>
+                  <button
+                    key={i}
+                    onClick={() => setCurrentPage(pageNum)}
+                    style={{
+                      padding: "8px 12px",
+                      backgroundColor: currentPage === pageNum ? "#3b82f6" : "white",
+                      color: currentPage === pageNum ? "white" : "#374151",
+                      border: "1px solid #d1d5db",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      fontSize: 13,
+                      fontWeight: currentPage === pageNum ? 600 : 400,
+                      minWidth: 40,
+                    }}
+                  >
                     {pageNum}
                   </button>
                 );
               })}
             </div>
             
-            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} style={{ padding: "8px 16px", backgroundColor: currentPage === totalPages ? "#e5e7eb" : "#3b82f6", color: currentPage === totalPages ? "#9ca3af" : "white", border: "none", borderRadius: 6, cursor: currentPage === totalPages ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600 }}>Next ▶️</button>
-            <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} style={{ padding: "8px 16px", backgroundColor: currentPage === totalPages ? "#e5e7eb" : "#3b82f6", color: currentPage === totalPages ? "#9ca3af" : "white", border: "none", borderRadius: 6, cursor: currentPage === totalPages ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600 }}>Last ⏭️</button>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              style={{
+                padding: "8px 16px",
+                backgroundColor: currentPage === totalPages ? "#e5e7eb" : "#3b82f6",
+                color: currentPage === totalPages ? "#9ca3af" : "white",
+                border: "none",
+                borderRadius: 6,
+                cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
+              Next ▶️
+            </button>
+            
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              style={{
+                padding: "8px 16px",
+                backgroundColor: currentPage === totalPages ? "#e5e7eb" : "#3b82f6",
+                color: currentPage === totalPages ? "#9ca3af" : "white",
+                border: "none",
+                borderRadius: 6,
+                cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
+              Last ⏭️
+            </button>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
+          {/* Items per page */}
+          <div style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            gap: 8,
+            fontSize: 14,
+          }}>
             <label style={{ color: "#6b7280" }}>Show:</label>
-            <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }} style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid #d1d5db", fontSize: 14, backgroundColor: "white", cursor: "pointer" }}>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              style={{
+                padding: "8px 12px",
+                borderRadius: 6,
+                border: "1px solid #d1d5db",
+                fontSize: 14,
+                backgroundColor: "white",
+                cursor: "pointer",
+              }}
+            >
               <option value={5}>5</option>
               <option value={10}>10</option>
               <option value={20}>20</option>
