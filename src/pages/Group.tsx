@@ -1116,23 +1116,23 @@ export default function Group() {
 
       {/* Advanced Filters */}
       <AdvancedFilters
-        currentUserId={currentUser?.id}
-        members={members}
-        categories={allCategories}
-        showName={showName}
-        onFilterChange={handleFilterChange}
-        onSortChange={handleSortChange}
-        filterMonth={filterMonth}
-        filterYear={filterYear}
-        onMonthChange={setFilterMonth}
-        onYearChange={setFilterYear}
-        onExportCSV={exportToCSV}
-        dateFrom={dateFrom}
-        dateTo={dateTo}
-        onDateFromChange={setDateFrom}
-        onDateToChange={setDateTo}
-        totalExpenses={filteredAndSortedExpenses.length}
-      />
+  currentUserId={currentUser?.id}
+  members={members}
+  categories={allCategories}
+  showName={showName}
+  onFilterChange={handleFilterChange}
+  onSortChange={handleSortChange}
+  filterMonth={filterMonth}
+  filterYear={filterYear}
+  onMonthChange={setFilterMonth}
+  onYearChange={setFilterYear}
+  onExportCSV={exportToCSV}
+  dateFrom={dateFrom}
+  dateTo={dateTo}
+  onDateFromChange={setDateFrom}
+  onDateToChange={setDateTo}
+  totalExpenses={filteredAndSortedExpenses.length}
+/>
 
       {/* ✅ FIX #8: Budget Overview - Now Collapsible */}
       {budgets.length > 0 && (
