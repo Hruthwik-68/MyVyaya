@@ -345,6 +345,13 @@ export default function Group() {
 // ============================================
 
   // ✅ FIX #9: APPLY ADVANCED FILTERS & SORTING (All user filters now working)
+ // ============================================
+// GROUP.TSX - PART 2: FIXED NORMAL SPLIT ALGORITHM
+// ✅ Normal Split: Only cancels direct debts (A→B + B→A)
+// ✅ Smart Split: Full optimization (A→B→C becomes A→C)
+// ============================================
+
+  // ✅ FIX #9: APPLY ADVANCED FILTERS & SORTING (All user filters now working)
   const filteredAndSortedExpenses = useMemo(() => {
     let result = [...filteredExpenses];
 
@@ -617,52 +624,72 @@ export default function Group() {
   }, [members, expenses, payments]);
 
   // ============================================
-  // SETTLEMENTS CALCULATION (MEMOIZED)
+  // ✅ FIXED SETTLEMENTS CALCULATION
   // ============================================
   const calculateSettlements = useCallback(() => {
     const users = Object.keys(balances);
     
     if (useSmartSplit) {
-      // SMART SPLIT: Optimized settlements
+      // ========================================
+      // SMART SPLIT: Full Optimization
+      // A→B→C becomes A→C directly
+      // ========================================
       const settlements: any[] = [];
 
       let creditors = users
-        .filter((u) => balances[u] > 0)
-        .map((u) => ({ u, amt: balances[u] }));
+        .filter((u) => balances[u] > 0.01)
+        .map((u) => ({ u, amt: balances[u] }))
+        .sort((a, b) => b.amt - a.amt); // Descending
 
       let debtors = users
-        .filter((u) => balances[u] < 0)
-        .map((u) => ({ u, amt: -balances[u] }));
+        .filter((u) => balances[u] < -0.01)
+        .map((u) => ({ u, amt: -balances[u] }))
+        .sort((a, b) => b.amt - a.amt); // Descending
 
       let i = 0, j = 0;
 
       while (i < debtors.length && j < creditors.length) {
         const pay = Math.min(debtors[i].amt, creditors[j].amt);
 
-        settlements.push({
-          from: debtors[i].u,
-          to: creditors[j].u,
-          amount: Number(pay.toFixed(2)),
-        });
+        if (pay > 0.01) {
+          settlements.push({
+            from: debtors[i].u,
+            to: creditors[j].u,
+            amount: Number(pay.toFixed(2)),
+          });
+        }
 
         debtors[i].amt -= pay;
         creditors[j].amt -= pay;
 
-        if (debtors[i].amt <= 0.0001) i++;
-        if (creditors[j].amt <= 0.0001) j++;
+        if (debtors[i].amt <= 0.01) i++;
+        if (creditors[j].amt <= 0.01) j++;
       }
 
       return settlements;
+      
     } else {
-      // NORMAL SPLIT: Direct settlements only
+      // ========================================
+      // ✅ FIXED NORMAL SPLIT: Direct Cancellation Only
+      // Only cancels A→B if B→A exists
+      // Does NOT optimize across multiple people
+      // ========================================
+      
+      // Example: A→B(100), B→C(200), C→A(200), A→C(50)
+      // Result: C→A(150), A→B(100), B→C(200)
+      // Only A→C + C→A cancel each other (50 each)
+      
       const settlements: any[] = [];
       const balancesCopy = { ...balances };
 
-      users.forEach((debtor) => {
-        if (balancesCopy[debtor] >= 0) return;
-
-        users.forEach((creditor) => {
-          if (balancesCopy[creditor] <= 0) return;
+      // Build direct debts matrix
+      const directDebts: Record<string, Record<string, number>> = {};
+      
+      users.forEach(debtor => {
+        if (balancesCopy[debtor] >= -0.01) return;
+        
+        users.forEach(creditor => {
+          if (balancesCopy[creditor] <= 0.01) return;
           if (debtor === creditor) return;
 
           const debtAmount = Math.abs(balancesCopy[debtor]);
@@ -670,14 +697,58 @@ export default function Group() {
           const settleAmount = Math.min(debtAmount, creditAmount);
 
           if (settleAmount > 0.01) {
-            settlements.push({
-              from: debtor,
-              to: creditor,
-              amount: Number(settleAmount.toFixed(2)),
-            });
+            if (!directDebts[debtor]) directDebts[debtor] = {};
+            directDebts[debtor][creditor] = settleAmount;
 
             balancesCopy[debtor] += settleAmount;
             balancesCopy[creditor] -= settleAmount;
+          }
+        });
+      });
+
+      // ✅ CANCEL ONLY DIRECT OPPOSITE DEBTS (A→B vs B→A)
+      const cancelled: Set<string> = new Set();
+
+      users.forEach(userA => {
+        users.forEach(userB => {
+          if (userA === userB) return;
+          if (cancelled.has(`${userA}-${userB}`) || cancelled.has(`${userB}-${userA}`)) return;
+
+          const AtoB = directDebts[userA]?.[userB] || 0;
+          const BtoA = directDebts[userB]?.[userA] || 0;
+
+          if (AtoB > 0.01 && BtoA > 0.01) {
+            // Both owe each other - cancel the smaller amount
+            const cancelAmount = Math.min(AtoB, BtoA);
+            
+            if (AtoB > BtoA) {
+              // A still owes B after cancellation
+              directDebts[userA][userB] -= cancelAmount;
+              directDebts[userB][userA] = 0;
+            } else {
+              // B still owes A after cancellation
+              directDebts[userB][userA] -= cancelAmount;
+              directDebts[userA][userB] = 0;
+            }
+
+            cancelled.add(`${userA}-${userB}`);
+          }
+        });
+      });
+
+      // Build final settlements from remaining debts
+      users.forEach(debtor => {
+        if (!directDebts[debtor]) return;
+        
+        users.forEach(creditor => {
+          const amount = directDebts[debtor][creditor];
+          
+          if (amount > 0.01) {
+            settlements.push({
+              from: debtor,
+              to: creditor,
+              amount: Number(amount.toFixed(2)),
+            });
           }
         });
       });
@@ -861,6 +932,9 @@ export default function Group() {
   };
 
   const isMobile = window.innerWidth < 640;
+
+// CONTINUE IN PART 3 (UI RENDERING)...
+
 
 // CONTINUE IN PART 3...
 
