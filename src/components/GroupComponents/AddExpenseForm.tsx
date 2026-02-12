@@ -37,37 +37,57 @@ export default function AddExpenseForm({
   showName,
   categories,
 }: Props) {
+  const inputStyle = {
+    width: "100%",
+    padding: "12px",
+    fontSize: "15px",
+    background: "rgba(15, 23, 42, 0.6)",
+    border: "1px solid rgba(148, 163, 184, 0.1)",
+    borderRadius: "8px",
+    color: "#f8fafc",
+    boxSizing: "border-box" as const,
+    outline: "none",
+    transition: "all 0.2s",
+  };
+
+  const labelStyle = {
+    display: "block",
+    fontWeight: "600",
+    marginBottom: "8px",
+    fontSize: "13px",
+    color: "#94a3b8",
+    letterSpacing: "0.02em",
+  };
+
   return (
     <div
       style={{
-        backgroundColor: "#ffffff",
-        border: "1px solid #e0e0e0",
-        borderRadius: 10,
-        padding: "15px",
-        marginTop: 20,
-        marginBottom: 20,
-        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+        background: "rgba(30, 41, 59, 0.7)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        border: "1px solid rgba(148, 163, 184, 0.1)",
+        borderRadius: 16,
+        padding: "24px",
+        marginTop: 24,
+        marginBottom: 24,
+        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
       }}
     >
-      <h3 style={{ marginTop: 0, marginBottom: 20, fontSize: 18 }}>💰 Add New Expense</h3>
+      <h3 style={{ marginTop: 0, marginBottom: 24, fontSize: 18, color: "#e2e8f0", display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ background: 'rgba(34, 211, 238, 0.1)', padding: 6, borderRadius: 8 }}>💰</span>
+        Add New Expense
+      </h3>
 
       <div
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: 15,
+          gap: 20,
         }}
       >
         {/* Amount */}
         <div>
-          <label
-            style={{
-              display: "block",
-              fontWeight: "600",
-              marginBottom: 5,
-              fontSize: 13,
-            }}
-          >
+          <label style={labelStyle}>
             Amount *
           </label>
           <input
@@ -75,111 +95,80 @@ export default function AddExpenseForm({
             placeholder="₹0.00"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            style={{
-              width: "100%",
-              padding: 10,
-              fontSize: 16,
-              border: "1px solid #ddd",
-              borderRadius: 5,
-              boxSizing: "border-box",
-            }}
+            style={inputStyle}
+            onFocus={(e) => e.target.style.borderColor = "#22d3ee"}
+            onBlur={(e) => e.target.style.borderColor = "rgba(148, 163, 184, 0.1)"}
           />
         </div>
 
         {/* Description */}
         <div>
-          <label
-            style={{
-              display: "block",
-              fontWeight: "600",
-              marginBottom: 5,
-              fontSize: 13,
-            }}
-          >
+          <label style={labelStyle}>
             Description
           </label>
           <input
             placeholder="e.g., Team lunch"
             value={desc}
             onChange={(e) => setDesc(e.target.value)}
-            style={{
-              width: "100%",
-              padding: 10,
-              fontSize: 16,
-              border: "1px solid #ddd",
-              borderRadius: 5,
-              boxSizing: "border-box",
-            }}
+            style={inputStyle}
+            onFocus={(e) => e.target.style.borderColor = "#22d3ee"}
+            onBlur={(e) => e.target.style.borderColor = "rgba(148, 163, 184, 0.1)"}
           />
         </div>
 
         {/* Category */}
         <div>
-          <label
-            style={{
-              display: "block",
-              fontWeight: "600",
-              marginBottom: 5,
-              fontSize: 13,
-            }}
-          >
+          <label style={labelStyle}>
             Category *
           </label>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            style={{
-              width: "100%",
-              padding: 10,
-              fontSize: 16,
-              border: "1px solid #ddd",
-              borderRadius: 5,
-              boxSizing: "border-box",
-              backgroundColor: "white",
-              cursor: "pointer",
-            }}
-          >
-            {categories.map((cat) => (
-              <option key={cat.value} value={cat.value}>
-                {cat.icon} {cat.value}
-              </option>
-            ))}
-          </select>
+          <div style={{ position: 'relative' }}>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              style={{
+                ...inputStyle,
+                appearance: "none",
+                cursor: "pointer",
+              }}
+              onFocus={(e) => e.target.style.borderColor = "#22d3ee"}
+              onBlur={(e) => e.target.style.borderColor = "rgba(148, 163, 184, 0.1)"}
+            >
+              {categories.map((cat) => (
+                <option key={cat.value} value={cat.value} style={{ background: "#1e293b", color: "white" }}>
+                  {cat.icon} {cat.value}
+                </option>
+              ))}
+            </select>
+            <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#94a3b8', fontSize: 12 }}>▼</div>
+          </div>
         </div>
 
         {/* Paid By */}
         <div>
-          <label
-            style={{
-              display: "block",
-              fontWeight: "600",
-              marginBottom: 5,
-              fontSize: 13,
-            }}
-          >
+          <label style={labelStyle}>
             Paid By *
           </label>
-          <select
-            value={paidBy}
-            onChange={(e) => setPaidBy(e.target.value)}
-            style={{
-              width: "100%",
-              padding: 10,
-              fontSize: 16,
-              border: "1px solid #ddd",
-              borderRadius: 5,
-              boxSizing: "border-box",
-              backgroundColor: "white",
-              cursor: "pointer",
-            }}
-          >
-            <option value="">Select who paid...</option>
-            {members.map((m) => (
-              <option key={m.user_id} value={m.user_id}>
-                {showName ? showName(m.user_id) : m.user_id}
-              </option>
-            ))}
-          </select>
+          <div style={{ position: 'relative' }}>
+            <select
+              value={paidBy}
+              onChange={(e) => setPaidBy(e.target.value)}
+              style={{
+                ...inputStyle,
+                appearance: "none",
+                cursor: "pointer",
+              }}
+              onFocus={(e) => e.target.style.borderColor = "#22d3ee"}
+              onBlur={(e) => e.target.style.borderColor = "rgba(148, 163, 184, 0.1)"}
+            >
+              <option value="" style={{ background: "#1e293b", color: "#94a3b8" }}>Select who paid...</option>
+              {members.map((m) => (
+                <option key={m.user_id} value={m.user_id} style={{ background: "#1e293b", color: "white" }}>
+                  {showName ? showName(m.user_id) : m.user_id}
+                </option>
+              ))}
+            </select>
+            <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#94a3b8', fontSize: 12 }}>▼</div>
+          </div>
         </div>
       </div>
     </div>
