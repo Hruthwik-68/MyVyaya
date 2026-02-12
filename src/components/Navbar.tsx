@@ -15,51 +15,53 @@ export default function Navbar() {
   return (
     <nav
       style={{
-        background: "#052044",
+        background: "rgba(6, 11, 24, 0.85)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
         color: "white",
-        padding: "12px 20px",
+        padding: "14px 24px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        boxShadow: "0 3px 10px rgba(0,0,0,.2)",
+        borderBottom: "1px solid rgba(148, 163, 184, 0.08)",
         position: "sticky",
         top: 0,
         zIndex: 999,
       }}
     >
-      {/* LEFT — LOGO (NO WHITE BACKGROUND) */}
-      <Link 
-        to="/home" 
-        style={{ 
-          textDecoration: 'none', 
-          display: 'flex', 
-          alignItems: 'center',
-          transition: 'transform 0.3s ease'
+      {/* LEFT — LOGO */}
+      <Link
+        to="/home"
+        style={{
+          textDecoration: "none",
+          display: "flex",
+          alignItems: "center",
+          transition: "transform 0.3s ease",
         }}
         className="navbar-logo-link"
       >
-        <img 
-          src={MyVyayaPhotoroom} 
-          alt="My Vyaya" 
+        <img
+          src={MyVyayaPhotoroom}
+          alt="My Vyaya"
           className="navbar-logo"
-          style={{ 
-            height: '45px',
-            width: 'auto',
-            maxWidth: '180px',
-            objectFit: 'contain',
-            display: 'block',
-            filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2))',
-            transition: 'all 0.3s ease'
-          }} 
+          style={{
+            height: "45px",
+            width: "auto",
+            maxWidth: "180px",
+            objectFit: "contain",
+            display: "block",
+            filter: "drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2))",
+            transition: "all 0.3s ease",
+          }}
         />
       </Link>
 
-      {/* DESKTOP MENU WITH ANIMATIONS */}
+      {/* DESKTOP MENU */}
       <div
         className="desktop-menu"
         style={{
           display: "flex",
-          gap: 20,
+          gap: 24,
           alignItems: "center",
         }}
       >
@@ -68,11 +70,16 @@ export default function Navbar() {
           className="nav-link"
           style={{
             textDecoration: "none",
-            color: location.pathname === "/home" ? "#4dabff" : "white",
-            fontWeight: 500,
-            position: 'relative',
-            padding: '8px 0',
-            transition: 'all 0.3s ease',
+            color:
+              location.pathname === "/home"
+                ? "#3b8bff"
+                : "rgba(241, 245, 249, 0.7)",
+            fontWeight: 400,
+            fontSize: "14px",
+            letterSpacing: "0.01em",
+            position: "relative",
+            padding: "8px 0",
+            transition: "all 0.3s ease",
           }}
         >
           Home
@@ -83,11 +90,16 @@ export default function Navbar() {
           className="nav-link"
           style={{
             textDecoration: "none",
-            color: location.pathname === "/profile" ? "#4dabff" : "white",
-            fontWeight: 500,
-            position: 'relative',
-            padding: '8px 0',
-            transition: 'all 0.3s ease',
+            color:
+              location.pathname === "/profile"
+                ? "#3b8bff"
+                : "rgba(241, 245, 249, 0.7)",
+            fontWeight: 400,
+            fontSize: "14px",
+            letterSpacing: "0.01em",
+            position: "relative",
+            padding: "8px 0",
+            transition: "all 0.3s ease",
           }}
         >
           Profile
@@ -97,15 +109,16 @@ export default function Navbar() {
           onClick={logout}
           className="logout-btn"
           style={{
-            background: "#e63946",
-            border: "none",
-            padding: "8px 16px",
+            background: "transparent",
+            border: "1px solid rgba(248, 113, 113, 0.3)",
+            padding: "7px 18px",
             borderRadius: 8,
-            color: "white",
+            color: "#f87171",
             cursor: "pointer",
             fontWeight: 500,
-            transition: 'all 0.3s ease',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+            fontSize: "13px",
+            transition: "all 0.3s ease",
+            boxShadow: "none",
           }}
         >
           Logout
@@ -119,13 +132,14 @@ export default function Navbar() {
         style={{
           background: "transparent",
           border: "none",
-          color: "white",
-          fontSize: 26,
+          color: "rgba(241, 245, 249, 0.8)",
+          fontSize: 24,
           cursor: "pointer",
           display: "none",
+          padding: "4px",
         }}
       >
-        ☰
+        {open ? "✕" : "☰"}
       </button>
 
       {/* MOBILE DROPDOWN */}
@@ -134,13 +148,16 @@ export default function Navbar() {
           className="mobile-menu"
           style={{
             position: "absolute",
-            top: 60,
-            right: 10,
-            background: "#0A2F5A",
-            borderRadius: 10,
-            padding: 12,
-            boxShadow: "0 10px 25px rgba(0,0,0,.25)",
-            width: 180,
+            top: 64,
+            right: 12,
+            background: "rgba(12, 20, 37, 0.95)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            borderRadius: 14,
+            padding: 16,
+            boxShadow: "0 20px 50px rgba(0,0,0,.5)",
+            border: "1px solid rgba(148, 163, 184, 0.08)",
+            width: 200,
           }}
         >
           <Link
@@ -148,9 +165,12 @@ export default function Navbar() {
             onClick={() => setOpen(false)}
             style={{
               display: "block",
-              color: "white",
-              padding: "10px 8px",
+              color: "rgba(241, 245, 249, 0.8)",
+              padding: "12px 10px",
               textDecoration: "none",
+              fontSize: "14px",
+              borderRadius: 8,
+              transition: "background 0.2s",
             }}
           >
             Home
@@ -161,9 +181,12 @@ export default function Navbar() {
             onClick={() => setOpen(false)}
             style={{
               display: "block",
-              color: "white",
-              padding: "10px 8px",
+              color: "rgba(241, 245, 249, 0.8)",
+              padding: "12px 10px",
               textDecoration: "none",
+              fontSize: "14px",
+              borderRadius: 8,
+              transition: "background 0.2s",
             }}
           >
             Profile
@@ -173,13 +196,15 @@ export default function Navbar() {
             onClick={logout}
             style={{
               width: "100%",
-              marginTop: 6,
-              background: "#e63946",
-              border: "none",
-              padding: "8px 0",
+              marginTop: 8,
+              background: "transparent",
+              border: "1px solid rgba(248, 113, 113, 0.3)",
+              padding: "10px 0",
               borderRadius: 8,
-              color: "white",
+              color: "#f87171",
               cursor: "pointer",
+              fontSize: "13px",
+              fontWeight: 500,
             }}
           >
             Logout
