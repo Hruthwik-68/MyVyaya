@@ -116,10 +116,10 @@ export default function LoanManagement() {
 
   const [sortBy, setSortBy] = useState<'date' | 'amount' | 'name' | 'due_date' | 'remaining'>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
+  const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
   // Extras Modal States
   const [extrasTab, setExtrasTab] = useState<'analytics' | 'installments' | 'shared' | 'export' | 'privacy'>('analytics');
-  
+
   // Installment States
   const [selectedLoanForInstallments, setSelectedLoanForInstallments] = useState<string | null>(null);
   const [showPartialPaymentModal, setShowPartialPaymentModal] = useState(false);
@@ -229,7 +229,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
     // Text search (O(n))
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
-      result = result.filter(loan => 
+      result = result.filter(loan =>
         loan.name.toLowerCase().includes(searchLower) ||
         loan.description?.toLowerCase().includes(searchLower) ||
         loan.phone?.includes(filters.search)
@@ -289,8 +289,8 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
           comparison = a.name.localeCompare(b.name);
           break;
         case 'due_date':
-          comparison = (a.due_date ? new Date(a.due_date).getTime() : Infinity) - 
-                      (b.due_date ? new Date(b.due_date).getTime() : Infinity);
+          comparison = (a.due_date ? new Date(a.due_date).getTime() : Infinity) -
+            (b.due_date ? new Date(b.due_date).getTime() : Infinity);
           break;
         case 'remaining':
           comparison = a.remaining_amount - b.remaining_amount;
@@ -304,12 +304,12 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
   }, [loans, filters, sortBy, sortDirection]);
 
   // Separate TOOK and GAVE (O(n))
-  const tookLoans = useMemo(() => 
+  const tookLoans = useMemo(() =>
     filteredAndSortedLoans.filter(l => l.type === 'took'),
     [filteredAndSortedLoans]
   );
 
-  const gaveLoans = useMemo(() => 
+  const gaveLoans = useMemo(() =>
     filteredAndSortedLoans.filter(l => l.type === 'gave'),
     [filteredAndSortedLoans]
   );
@@ -327,12 +327,12 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
     return [...pending, ...repaid];
   }, [gaveLoans]);
 
-// CONTINUE IN PART 2...
+  // CONTINUE IN PART 2...
 
-// ============================================
-// LOAN MANAGEMENT - PART 2: BUSINESS LOGIC
-// All CRUD operations, calculations, and helpers
-// ============================================
+  // ============================================
+  // LOAN MANAGEMENT - PART 2: BUSINESS LOGIC
+  // All CRUD operations, calculations, and helpers
+  // ============================================
 
   // ============================================
   // ADD LOAN
@@ -623,7 +623,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
   // ============================================
   const exportToCSV = useCallback(() => {
     const headers = ['Type', 'Name', 'Phone', 'Amount', 'Interest', 'Remaining', 'Date', 'Due Date', 'Status', 'Category', 'Priority'];
-    
+
     const rows = filteredAndSortedLoans.map(loan => [
       loan.type === 'took' ? 'BORROWED' : 'LENT',
       loan.name,
@@ -738,7 +738,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
     );
 
     const phone = loan.phone ? loan.phone.replace(/\D/g, '') : '';
-    const url = phone 
+    const url = phone
       ? `https://wa.me/${phone}?text=${message}`
       : `https://wa.me/?text=${message}`;
 
@@ -773,23 +773,23 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
 
   const isMobile = window.innerWidth < 640;
 
-// CONTINUE IN PART 3...
+  // CONTINUE IN PART 3...
 
-// ============================================
-// LOAN MANAGEMENT - PART 3: UI RENDERING (HEADER + ANALYTICS + EXTRAS)
-// Clean professional UI with all features in EXTRAS button
-// ============================================
+  // ============================================
+  // LOAN MANAGEMENT - PART 3: UI RENDERING (HEADER + ANALYTICS + EXTRAS)
+  // Clean professional UI with all features in EXTRAS button
+  // ============================================
 
   return (
     <div style={{ padding: isMobile ? 10 : 20, maxWidth: 1400, margin: "0 auto" }}>
-      
+
       {/* ============================================ */}
       {/* HEADER */}
       {/* ============================================ */}
-      <div style={{ 
-        display: "flex", 
-        justifyContent: "space-between", 
-        alignItems: "center", 
+      <div style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
         marginBottom: 20,
         flexWrap: "wrap",
         gap: 15,
@@ -797,7 +797,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
         <h1 style={{ margin: 0, fontSize: isMobile ? 24 : 32, color: "#1f2937" }}>
           💰 TOOK / GAVE Manager
         </h1>
-        
+
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button
             onClick={() => setShowExtrasModal(true)}
@@ -814,7 +814,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
           >
             ⚡ EXTRAS
           </button>
-          
+
           <button
             onClick={() => navigate("/home")}
             style={{
@@ -822,9 +822,9 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
               borderRadius: 8,
               fontSize: 15,
               fontWeight: 600,
-              backgroundColor: "#f3f4f6",
+              background: "rgba(12, 36, 58, 0.6)",
               border: "1px solid #d1d5db",
-                  color: "#1f2937",  // ← ADD THIS LINE
+              color: "#1f2937",  // ← ADD THIS LINE
               cursor: "pointer",
             }}
           >
@@ -912,204 +912,204 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
       {/* ============================================ */}
       {/* FILTERS & SORT */}
       {/* ============================================ */}
-     {/* ============================================ */}
-{/* FILTERS & SORT */}
-{/* ============================================ */}
-<div style={{
-  backgroundColor: "#f9fafb",
-  border: "1px solid #e5e7eb",
-  borderRadius: 10,
-  padding: 15,
-  marginBottom: 20,
-}}>
-  {/* Filter Toggle Button */}
-  <button
-    onClick={() => setShowFilters(!showFilters)}
-    style={{
-      width: "100%",
-      padding: "12px",
-      backgroundColor: "#3b82f6",
-      color: "white",
-      border: "none",
-      borderRadius: 8,
-      cursor: "pointer",
-      fontWeight: 600,
-      fontSize: 15,
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-    }}
-  >
-    <span>🔍 Filters & Sort</span>
-    <span>{showFilters ? '▼ Hide' : '▶ Show'}</span>
-  </button>
-{/* Collapsible Filter Content */}
-  {showFilters && (
-    <div style={{ marginTop: 15 }}>
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(200px, 1fr))", gap: 10, marginBottom: 10 }}>
-        {/* Search */}
-        <input
-          type="text"
-          placeholder="🔍 Search by name, phone..."
-          value={filters.search}
-          onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-          style={{
-            padding: "10px 12px",
-            borderRadius: 6,
-            border: "1px solid #d1d5db",
-            fontSize: 14,
-          }}
-        />
-
-        {/* Category */}
-        <select
-          value={filters.category}
-          onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-          style={{
-            padding: "10px 12px",
-            borderRadius: 6,
-            border: "1px solid #d1d5db",
-            fontSize: 14,
-          }}
-        >
-          <option value="all">All Categories</option>
-          <option value="Personal">Personal</option>
-          <option value="Business">Business</option>
-          <option value="Emergency">Emergency</option>
-          <option value="Investment">Investment</option>
-        </select>
-
-        {/* Priority */}
-        <select
-          value={filters.priority}
-          onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
-          style={{
-            padding: "10px 12px",
-            borderRadius: 6,
-            border: "1px solid #d1d5db",
-            fontSize: 14,
-          }}
-        >
-          <option value="all">All Priorities</option>
-          <option value="low">🟢 Low</option>
-          <option value="medium">🟡 Medium</option>
-          <option value="high">🟠 High</option>
-          <option value="urgent">🔴 Urgent</option>
-        </select>
-
-        {/* Repayment Status */}
-        <select
-          value={filters.repaymentStatus}
-          onChange={(e) => setFilters({ ...filters, repaymentStatus: e.target.value })}
-          style={{
-            padding: "10px 12px",
-            borderRadius: 6,
-            border: "1px solid #d1d5db",
-            fontSize: 14,
-          }}
-        >
-          <option value="all">All Status</option>
-          <option value="pending">⏳ Pending</option>
-          <option value="repaid">✓ Repaid</option>
-        </select>
-
-        {/* Sort By */}
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as any)}
-          style={{
-            padding: "10px 12px",
-            borderRadius: 6,
-            border: "1px solid #d1d5db",
-            fontSize: 14,
-          }}
-        >
-          <option value="date">Sort: Date</option>
-          <option value="amount">Sort: Amount</option>
-          <option value="name">Sort: Name</option>
-          <option value="due_date">Sort: Due Date</option>
-          <option value="remaining">Sort: Remaining</option>
-        </select>
-
-        {/* Sort Direction */}
+      {/* ============================================ */}
+      {/* FILTERS & SORT */}
+      {/* ============================================ */}
+      <div style={{
+        background: "rgba(10, 31, 51, 0.7)",
+        border: "1px solid #e5e7eb",
+        borderRadius: 10,
+        padding: 15,
+        marginBottom: 20,
+      }}>
+        {/* Filter Toggle Button */}
         <button
-          onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
+          onClick={() => setShowFilters(!showFilters)}
           style={{
-            padding: "10px 12px",
-            borderRadius: 6,
-            border: "1px solid #d1d5db",
-            backgroundColor: "#fff",
-            color: "#1f2937",
-            cursor: "pointer",
-            fontSize: 14,
-            fontWeight: 600,
-          }}
-        >
-          {sortDirection === 'asc' ? '↑ Ascending' : '↓ Descending'}
-        </button>
-      </div>
-
-      {/* Amount Range */}
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <span style={{ fontSize: 14, fontWeight: 600, color: "#1f2937" }}>Amount Range:</span>
-        <input
-          type="number"
-          placeholder="Min ₹"
-          value={filters.amountMin}
-          onChange={(e) => setFilters({ ...filters, amountMin: e.target.value })}
-          style={{
-            padding: "8px 12px",
-            borderRadius: 6,
-            border: "1px solid #d1d5db",
-            width: 120,
-            fontSize: 14,
-          }}
-        />
-        <span style={{ color: "#1f2937" }}>to</span>
-        <input
-          type="number"
-          placeholder="Max ₹"
-          value={filters.amountMax}
-          onChange={(e) => setFilters({ ...filters, amountMax: e.target.value })}
-          style={{
-            padding: "8px 12px",
-            borderRadius: 6,
-            border: "1px solid #d1d5db",
-            width: 120,
-            fontSize: 14,
-          }}
-        />
-
-        <button
-          onClick={() => setFilters({
-            search: '',
-            category: 'all',
-            priority: 'all',
-            repaymentStatus: 'all',
-            amountMin: '',
-            amountMax: '',
-            dateFrom: '',
-            dateTo: '',
-            showPrivate: true,
-          })}
-          style={{
-            padding: "8px 16px",
-            borderRadius: 6,
-            backgroundColor: "#dc2626",
+            width: "100%",
+            padding: "12px",
+            backgroundColor: "#3b82f6",
             color: "white",
             border: "none",
+            borderRadius: 8,
             cursor: "pointer",
-            fontSize: 14,
             fontWeight: 600,
+            fontSize: 15,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
           }}
         >
-          🗑️ Clear Filters
+          <span>🔍 Filters & Sort</span>
+          <span>{showFilters ? '▼ Hide' : '▶ Show'}</span>
         </button>
+        {/* Collapsible Filter Content */}
+        {showFilters && (
+          <div style={{ marginTop: 15 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(200px, 1fr))", gap: 10, marginBottom: 10 }}>
+              {/* Search */}
+              <input
+                type="text"
+                placeholder="🔍 Search by name, phone..."
+                value={filters.search}
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 6,
+                  border: "1px solid #d1d5db",
+                  fontSize: 14,
+                }}
+              />
+
+              {/* Category */}
+              <select
+                value={filters.category}
+                onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 6,
+                  border: "1px solid #d1d5db",
+                  fontSize: 14,
+                }}
+              >
+                <option value="all">All Categories</option>
+                <option value="Personal">Personal</option>
+                <option value="Business">Business</option>
+                <option value="Emergency">Emergency</option>
+                <option value="Investment">Investment</option>
+              </select>
+
+              {/* Priority */}
+              <select
+                value={filters.priority}
+                onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 6,
+                  border: "1px solid #d1d5db",
+                  fontSize: 14,
+                }}
+              >
+                <option value="all">All Priorities</option>
+                <option value="low">🟢 Low</option>
+                <option value="medium">🟡 Medium</option>
+                <option value="high">🟠 High</option>
+                <option value="urgent">🔴 Urgent</option>
+              </select>
+
+              {/* Repayment Status */}
+              <select
+                value={filters.repaymentStatus}
+                onChange={(e) => setFilters({ ...filters, repaymentStatus: e.target.value })}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 6,
+                  border: "1px solid #d1d5db",
+                  fontSize: 14,
+                }}
+              >
+                <option value="all">All Status</option>
+                <option value="pending">⏳ Pending</option>
+                <option value="repaid">✓ Repaid</option>
+              </select>
+
+              {/* Sort By */}
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 6,
+                  border: "1px solid #d1d5db",
+                  fontSize: 14,
+                }}
+              >
+                <option value="date">Sort: Date</option>
+                <option value="amount">Sort: Amount</option>
+                <option value="name">Sort: Name</option>
+                <option value="due_date">Sort: Due Date</option>
+                <option value="remaining">Sort: Remaining</option>
+              </select>
+
+              {/* Sort Direction */}
+              <button
+                onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 6,
+                  border: "1px solid #d1d5db",
+                  background: "rgba(10, 31, 51, 0.7)",
+                  color: "#1f2937",
+                  cursor: "pointer",
+                  fontSize: 14,
+                  fontWeight: 600,
+                }}
+              >
+                {sortDirection === 'asc' ? '↑ Ascending' : '↓ Descending'}
+              </button>
+            </div>
+
+            {/* Amount Range */}
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: "#1f2937" }}>Amount Range:</span>
+              <input
+                type="number"
+                placeholder="Min ₹"
+                value={filters.amountMin}
+                onChange={(e) => setFilters({ ...filters, amountMin: e.target.value })}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: 6,
+                  border: "1px solid #d1d5db",
+                  width: 120,
+                  fontSize: 14,
+                }}
+              />
+              <span style={{ color: "#1f2937" }}>to</span>
+              <input
+                type="number"
+                placeholder="Max ₹"
+                value={filters.amountMax}
+                onChange={(e) => setFilters({ ...filters, amountMax: e.target.value })}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: 6,
+                  border: "1px solid #d1d5db",
+                  width: 120,
+                  fontSize: 14,
+                }}
+              />
+
+              <button
+                onClick={() => setFilters({
+                  search: '',
+                  category: 'all',
+                  priority: 'all',
+                  repaymentStatus: 'all',
+                  amountMin: '',
+                  amountMax: '',
+                  dateFrom: '',
+                  dateTo: '',
+                  showPrivate: true,
+                })}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: 6,
+                  backgroundColor: "#dc2626",
+                  color: "white",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: 14,
+                  fontWeight: 600,
+                }}
+              >
+                🗑️ Clear Filters
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
-  )}
-</div>
-  
+
 
       {/* ============================================ */}
       {/* ADD LOAN MODAL */}
@@ -1121,7 +1121,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: "rgba(0,0,0,0.5)",
+          backgroundColor: "rgba(0,0,0,0.7)",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
@@ -1129,7 +1129,9 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
           padding: 20,
         }} onClick={() => setShowAddLoanModal(false)}>
           <div style={{
-            backgroundColor: "white",
+            background: "rgba(10, 31, 51, 0.95)",
+            border: "1px solid rgba(33, 150, 196, 0.15)",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
             borderRadius: 12,
             padding: 30,
             maxWidth: 600,
@@ -1278,7 +1280,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
               </div>
 
               {formData.has_installments && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 15, padding: 15, backgroundColor: "#f9fafb", borderRadius: 8 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 15, padding: 15, background: "rgba(12, 36, 58, 0.6)", borderRadius: 10 }}>
                   <div>
                     <label style={{ display: "block", marginBottom: 5, fontWeight: 600 }}>Total Installments</label>
                     <input
@@ -1369,7 +1371,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: "rgba(0,0,0,0.5)",
+          backgroundColor: "rgba(0,0,0,0.7)",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
@@ -1377,7 +1379,9 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
           padding: 20,
         }} onClick={() => setShowEditModal(false)}>
           <div style={{
-            backgroundColor: "white",
+            background: "rgba(10, 31, 51, 0.95)",
+            border: "1px solid rgba(33, 150, 196, 0.15)",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
             borderRadius: 12,
             padding: 30,
             maxWidth: 600,
@@ -1511,7 +1515,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
         </div>
       )}
 
-{/* CONTINUE TO EXTRAS MODAL... */}
+      {/* CONTINUE TO EXTRAS MODAL... */}
 
 
       {/* ============================================ */}
@@ -1523,12 +1527,12 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
         gap: 20,
         marginBottom: 20,
       }}>
-        
+
         {/* ============================================ */}
         {/* TOOK SECTION (BORROWED) */}
         {/* ============================================ */}
         <div style={{
-          backgroundColor: "#fff",
+          background: "rgba(10, 31, 51, 0.7)",
           border: "2px solid #dc2626",
           borderRadius: 12,
           padding: 20,
@@ -1556,12 +1560,12 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
           </div>
 
           {loading && sortedTookLoans.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 40, color: "#666" }}>
+            <div style={{ textAlign: "center", padding: 40, color: "#8ba4bc" }}>
               <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
               <p>Loading...</p>
             </div>
           ) : sortedTookLoans.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 40, color: "#666" }}>
+            <div style={{ textAlign: "center", padding: 40, color: "#8ba4bc" }}>
               <div style={{ fontSize: 48, marginBottom: 16 }}>📭</div>
               <p>No borrowed loans</p>
             </div>
@@ -1571,8 +1575,8 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
                 <div
                   key={loan.id}
                   style={{
-                    backgroundColor: loan.is_repaid ? "#f9fafb" : "#fff",
-                    border: `1px solid ${loan.is_repaid ? "#d1d5db" : "#fca5a5"}`,
+                    background: loan.is_repaid ? "rgba(12, 36, 58, 0.4)" : "rgba(12, 36, 58, 0.7)",
+                    border: `1px solid ${loan.is_repaid ? "rgba(148, 163, 184, 0.1)" : "rgba(252, 165, 165, 0.3)"}`,
                     borderRadius: 8,
                     padding: 15,
                     marginBottom: 12,
@@ -1582,7 +1586,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 18, fontWeight: "bold", color: "#1f2937", marginBottom: 4 }}>
+                      <div style={{ fontSize: 18, fontWeight: "bold", color: "#e8eff5", marginBottom: 4 }}>
                         {loan.name}
                         {loan.is_private && <span style={{ marginLeft: 8, fontSize: 12, color: "#7c3aed" }}>🔒</span>}
                       </div>
@@ -1591,7 +1595,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
                         {loan.category && <span style={{ marginLeft: 10 }}>📦 {loan.category}</span>}
                       </div>
                     </div>
-                    
+
                     <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
                       <input
                         type="checkbox"
@@ -1635,7 +1639,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
                       <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 4 }}>
                         Installments: {loan.paid_installments}/{loan.total_installments}
                       </div>
-                      <div style={{ width: "100%", height: 8, backgroundColor: "#e5e7eb", borderRadius: 4, overflow: "hidden" }}>
+                      <div style={{ width: "100%", height: 8, backgroundColor: "rgba(33, 150, 196, 0.15)", borderRadius: 4, overflow: "hidden" }}>
                         <div style={{
                           width: `${(loan.paid_installments / loan.total_installments) * 100}%`,
                           height: "100%",
@@ -1662,7 +1666,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
                     >
                       ✏️ Edit
                     </button>
-                    
+
                     {loan.is_repaid && (
                       <button
                         onClick={() => deleteLoan(loan.id)}
@@ -1681,7 +1685,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
                         🗑️ Delete
                       </button>
                     )}
-                    
+
                     {loan.phone && (
                       <button
                         onClick={() => shareViaWhatsApp(loan)}
@@ -1711,7 +1715,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
         {/* GAVE SECTION (LENT) */}
         {/* ============================================ */}
         <div style={{
-          backgroundColor: "#fff",
+          background: "rgba(10, 31, 51, 0.7)",
           border: "2px solid #16a34a",
           borderRadius: 12,
           padding: 20,
@@ -1739,12 +1743,12 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
           </div>
 
           {loading && sortedGaveLoans.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 40, color: "#666" }}>
+            <div style={{ textAlign: "center", padding: 40, color: "#8ba4bc" }}>
               <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
               <p>Loading...</p>
             </div>
           ) : sortedGaveLoans.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 40, color: "#666" }}>
+            <div style={{ textAlign: "center", padding: 40, color: "#8ba4bc" }}>
               <div style={{ fontSize: 48, marginBottom: 16 }}>📭</div>
               <p>No lent loans</p>
             </div>
@@ -1754,8 +1758,8 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
                 <div
                   key={loan.id}
                   style={{
-                    backgroundColor: loan.is_repaid ? "#f9fafb" : "#fff",
-                    border: `1px solid ${loan.is_repaid ? "#d1d5db" : "#86efac"}`,
+                    background: loan.is_repaid ? "rgba(12, 36, 58, 0.4)" : "rgba(12, 36, 58, 0.7)",
+                    border: `1px solid ${loan.is_repaid ? "rgba(148, 163, 184, 0.1)" : "rgba(134, 239, 172, 0.3)"}`,
                     borderRadius: 8,
                     padding: 15,
                     marginBottom: 12,
@@ -1765,7 +1769,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 18, fontWeight: "bold", color: "#1f2937", marginBottom: 4 }}>
+                      <div style={{ fontSize: 18, fontWeight: "bold", color: "#e8eff5", marginBottom: 4 }}>
                         {loan.name}
                         {loan.is_private && <span style={{ marginLeft: 8, fontSize: 12, color: "#7c3aed" }}>🔒</span>}
                       </div>
@@ -1774,7 +1778,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
                         {loan.category && <span style={{ marginLeft: 10 }}>📦 {loan.category}</span>}
                       </div>
                     </div>
-                    
+
                     <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
                       <input
                         type="checkbox"
@@ -1818,7 +1822,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
                       <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 4 }}>
                         Installments: {loan.paid_installments}/{loan.total_installments}
                       </div>
-                      <div style={{ width: "100%", height: 8, backgroundColor: "#e5e7eb", borderRadius: 4, overflow: "hidden" }}>
+                      <div style={{ width: "100%", height: 8, backgroundColor: "rgba(33, 150, 196, 0.15)", borderRadius: 4, overflow: "hidden" }}>
                         <div style={{
                           width: `${(loan.paid_installments / loan.total_installments) * 100}%`,
                           height: "100%",
@@ -1845,7 +1849,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
                     >
                       ✏️ Edit
                     </button>
-                    
+
                     {loan.is_repaid && (
                       <button
                         onClick={() => deleteLoan(loan.id)}
@@ -1864,7 +1868,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
                         🗑️ Delete
                       </button>
                     )}
-                    
+
                     {loan.phone && (
                       <button
                         onClick={() => shareViaWhatsApp(loan)}
@@ -1901,7 +1905,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: "rgba(0,0,0,0.5)",
+          backgroundColor: "rgba(0,0,0,0.7)",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
@@ -1909,7 +1913,9 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
           padding: 20,
         }} onClick={() => setShowExtrasModal(false)}>
           <div style={{
-            backgroundColor: "white",
+            background: "rgba(10, 31, 51, 0.95)",
+            border: "1px solid rgba(33, 150, 196, 0.15)",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
             borderRadius: 12,
             padding: 30,
             maxWidth: 900,
@@ -1918,23 +1924,23 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
             overflowY: "auto",
           }} onClick={(e) => e.stopPropagation()}>
             <h2 style={{ marginTop: 0, marginBottom: 20 }}>⚡ EXTRAS</h2>
-            
+
             {/* Tabs */}
-            <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap"}}>
-            {['analytics', 'installments', 'export', 'privacy'].map(tab => (
-  <button
-    key={tab}
-    onClick={() => setExtrasTab(tab as any)}
-    style={{
-      padding: "10px 20px",
-      border: extrasTab === tab ? "2px solid #7c3aed" : "1px solid #d1d5db",
-      backgroundColor: extrasTab === tab ? "#eff6ff" : "white",
-      color: "#1f2937",  // ← ADD THIS LINE
-      borderRadius: 8,
-      cursor: "pointer",
-      fontWeight: extrasTab === tab ? 600 : 400,
-    }}
-  >
+            <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+              {['analytics', 'installments', 'export', 'privacy'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setExtrasTab(tab as any)}
+                  style={{
+                    padding: "10px 20px",
+                    border: extrasTab === tab ? "2px solid #7c3aed" : "1px solid #d1d5db",
+                    backgroundColor: extrasTab === tab ? "#eff6ff" : "white",
+                    color: "#1f2937",  // ← ADD THIS LINE
+                    borderRadius: 8,
+                    cursor: "pointer",
+                    fontWeight: extrasTab === tab ? 600 : 400,
+                  }}
+                >
                   {tab === 'analytics' && '📊 Analytics'}
                   {tab === 'installments' && '🎯 Installments'}
                   {tab === 'export' && '📤 Export'}
@@ -1949,19 +1955,19 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
                 <div>
                   <h3>📊 Analytics Dashboard</h3>
                   <div style={{ display: "grid", gap: 15, marginTop: 20 }}>
-                    <div style={{ padding: 15, backgroundColor: "#f9fafb", borderRadius: 8 }}>
+                    <div style={{ padding: 15, background: "rgba(12, 36, 58, 0.6)", borderRadius: 10 }}>
                       <div style={{ fontSize: 14, color: "#6b7280", marginBottom: 5 }}>Total Loans</div>
                       <div style={{ fontSize: 24, fontWeight: "bold" }}>{loans.length}</div>
                     </div>
-                    <div style={{ padding: 15, backgroundColor: "#fef2f2", borderRadius: 8 }}>
+                    <div style={{ padding: 15, background: "rgba(220, 38, 38, 0.08)", borderRadius: 10 }}>
                       <div style={{ fontSize: 14, color: "#6b7280", marginBottom: 5 }}>Total Borrowed</div>
                       <div style={{ fontSize: 24, fontWeight: "bold", color: "#dc2626" }}>₹{analytics?.total_took_amount.toFixed(2) || 0}</div>
                     </div>
-                    <div style={{ padding: 15, backgroundColor: "#f0fdf4", borderRadius: 8 }}>
+                    <div style={{ padding: 15, background: "rgba(34, 197, 94, 0.08)", borderRadius: 10 }}>
                       <div style={{ fontSize: 14, color: "#6b7280", marginBottom: 5 }}>Total Lent</div>
                       <div style={{ fontSize: 24, fontWeight: "bold", color: "#16a34a" }}>₹{analytics?.total_gave_amount.toFixed(2) || 0}</div>
                     </div>
-                    <div style={{ padding: 15, backgroundColor: "#eff6ff", borderRadius: 8 }}>
+                    <div style={{ padding: 15, background: "rgba(33, 150, 196, 0.08)", borderRadius: 10 }}>
                       <div style={{ fontSize: 14, color: "#6b7280", marginBottom: 5 }}>Net Position</div>
                       <div style={{ fontSize: 24, fontWeight: "bold", color: analytics && analytics.net_position >= 0 ? "#16a34a" : "#dc2626" }}>
                         {analytics && analytics.net_position >= 0 ? '+' : ''}₹{analytics?.net_position.toFixed(2) || 0}
@@ -2019,7 +2025,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
                     >
                       📥 Export to CSV
                     </button>
-                    
+
                     <button
                       onClick={exportToPDF}
                       style={{
@@ -2036,7 +2042,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
                       📄 Export to PDF (Print)
                     </button>
 
-                    <div style={{ padding: 15, backgroundColor: "#f9fafb", borderRadius: 8, marginTop: 10 }}>
+                    <div style={{ padding: 15, background: "rgba(12, 36, 58, 0.6)", borderRadius: 10, marginTop: 10 }}>
                       <p style={{ margin: 0, fontSize: 14, color: "#6b7280" }}>
                         💡 Tip: Use WhatsApp button on individual loans to share details directly!
                       </p>
@@ -2049,7 +2055,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
                 <div>
                   <h3>🔒 Privacy Settings</h3>
                   <div style={{ marginTop: 20 }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: 10, padding: 15, backgroundColor: "#f9fafb", borderRadius: 8, cursor: "pointer" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 10, padding: 15, background: "rgba(12, 36, 58, 0.6)", borderRadius: 10, cursor: "pointer" }}>
                       <input
                         type="checkbox"
                         checked={filters.showPrivate}
@@ -2064,7 +2070,7 @@ const [showFilters, setShowFilters] = useState(false);  // ← ADD THIS LINE
                       </div>
                     </label>
 
-                    <div style={{ marginTop: 20, padding: 15, backgroundColor: "#eff6ff", borderRadius: 8 }}>
+                    <div style={{ marginTop: 20, padding: 15, background: "rgba(33, 150, 196, 0.08)", borderRadius: 10 }}>
                       <div style={{ fontWeight: 600, marginBottom: 8 }}>💡 Privacy Tips:</div>
                       <ul style={{ margin: 0, paddingLeft: 20, fontSize: 14, color: "#6b7280" }}>
                         <li>Mark sensitive loans as private when adding/editing</li>

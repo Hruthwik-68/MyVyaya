@@ -443,9 +443,11 @@ export default function Personal() {
           flexDirection: isMobile ? "column" : "row",
           gap: 15,
           padding: 20,
-          backgroundColor: "#fff",
-          borderRadius: 10,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+          background: "rgba(10, 31, 51, 0.7)",
+          backdropFilter: "blur(16px)",
+          borderRadius: 14,
+          boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
+          border: "1px solid rgba(33, 150, 196, 0.1)",
         }}
       >
         <h1 style={{ margin: 0, fontSize: isMobile ? 22 : 28 }}>💰 Personal Expenses</h1>
@@ -453,7 +455,7 @@ export default function Personal() {
           <button
             onClick={() => setShowAnalytics(!showAnalytics)}
             style={{
-              background: "linear-gradient(135deg, #667eea, #764ba2)",
+              background: "linear-gradient(135deg, #1a8a9e, #2196c4)",
               color: "white",
               border: "none",
               padding: isMobile ? "10px 12px" : "10px 15px",
@@ -607,7 +609,7 @@ export default function Personal() {
                         <span>{catInfo?.icon} {cat}</span>
                         <span style={{ fontWeight: "bold" }}>₹{(amount as number).toFixed(0)} ({percentage.toFixed(1)}%)</span>
                       </div>
-                      <div style={{ height: 10, backgroundColor: "#e0e0e0", borderRadius: 5, overflow: "hidden" }}>
+                      <div style={{ height: 10, backgroundColor: "rgba(33, 150, 196, 0.15)", borderRadius: 5, overflow: "hidden" }}>
                         <div style={{ width: `${percentage}%`, height: "100%", background: catInfo?.color || "#a29bfe" }} />
                       </div>
                     </div>
@@ -621,14 +623,14 @@ export default function Personal() {
               {getTopExpenses.map((exp, idx) => {
                 const catInfo = allCategories.find((c) => c.value === exp.category);
                 return (
-                  <div key={exp.id} style={{ display: "flex", justifyContent: "space-between", padding: 12, backgroundColor: "#f9fafb", borderRadius: 8, marginBottom: 8 }}>
+                  <div key={exp.id} style={{ display: "flex", justifyContent: "space-between", padding: 12, backgroundColor: "rgba(12, 36, 58, 0.6)", borderRadius: 8, marginBottom: 8 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ width: 24, height: 24, borderRadius: "50%", background: "linear-gradient(135deg, #667eea, #764ba2)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: "bold" }}>
+                      <div style={{ width: 24, height: 24, borderRadius: "50%", background: "linear-gradient(135deg, #1a8a9e, #2196c4)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: "bold" }}>
                         {idx + 1}
                       </div>
                       <div>
                         <div style={{ fontWeight: 600 }}>{catInfo?.icon} {exp.description || "No description"}</div>
-                        <div style={{ fontSize: 12, color: "#666" }}>{new Date(exp.date).toLocaleDateString()}</div>
+                        <div style={{ fontSize: 12, color: "#8ba4bc" }}>{new Date(exp.date).toLocaleDateString()}</div>
                       </div>
                     </div>
                     <div style={{ fontWeight: "bold", color: "#dc2626" }}>₹{Number(exp.amount).toFixed(0)}</div>
@@ -671,15 +673,15 @@ export default function Personal() {
               if (!status) return null;
 
               return (
-                <div key={cat} style={{ border: `2px solid ${status.color}`, padding: 15, borderRadius: 8, backgroundColor: "#fff" }}>
+                <div key={cat} style={{ border: `2px solid ${status.color}`, padding: 15, borderRadius: 12, background: "rgba(10, 31, 51, 0.7)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
                       <div style={{ fontSize: 18, fontWeight: "bold" }}>{catInfo?.icon} {cat}</div>
-                      <div style={{ fontSize: 14, color: "#666", marginTop: 4 }}>₹{status.spent.toFixed(0)} / ₹{status.limit.toFixed(0)}</div>
+                      <div style={{ fontSize: 14, color: "#8ba4bc", marginTop: 4 }}>₹{status.spent.toFixed(0)} / ₹{status.limit.toFixed(0)}</div>
                     </div>
                     <div style={{ fontSize: 24, fontWeight: "bold", color: status.color }}>{status.percentage.toFixed(0)}%</div>
                   </div>
-                  <div style={{ marginTop: 10, backgroundColor: "#e0e0e0", height: 10, borderRadius: 5, overflow: "hidden" }}>
+                  <div style={{ marginTop: 10, backgroundColor: "rgba(33, 150, 196, 0.15)", height: 10, borderRadius: 5, overflow: "hidden" }}>
                     <div style={{ width: `${Math.min(status.percentage, 100)}%`, height: "100%", backgroundColor: status.color }} />
                   </div>
                   <div style={{ marginTop: 8, fontSize: 12 }}>
@@ -733,21 +735,21 @@ export default function Personal() {
 
         {/* Form Fields */}
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4, 1fr)", gap: 15 }}>
-          <input type="number" placeholder="Amount ₹" value={amount} onChange={(e) => setAmount(e.target.value)} style={{ padding: "10px", borderRadius: 5, border: "1px solid #ddd" }} />
+          <input type="number" placeholder="Amount ₹" value={amount} onChange={(e) => setAmount(e.target.value)} style={{ padding: "10px", borderRadius: 5, border: "1px solid rgba(33, 150, 196, 0.15)", background: "rgba(12, 36, 58, 0.6)", color: "#e8eff5" }} />
           <input placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} style={{ padding: "10px", borderRadius: 5, border: "1px solid #ddd" }} />
           <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ padding: "10px", borderRadius: 5, border: "1px solid #ddd" }}>
             {allCategories.map((cat) => (
               <option key={cat.value} value={cat.value}>{cat.icon} {cat.value}</option>
             ))}
           </select>
-          <button disabled={loading} onClick={addExpense} style={{ padding: "10px 20px", backgroundColor: loading ? "#ccc" : "#16a34a", color: "white", border: "none", borderRadius: 5, cursor: loading ? "not-allowed" : "pointer", fontWeight: 600 }}>
+          <button disabled={loading} onClick={addExpense} style={{ padding: "10px 20px", background: loading ? "rgba(90,122,148,0.3)" : "linear-gradient(135deg, #1a8a9e, #2196c4)", color: "white", border: "none", borderRadius: 8, cursor: loading ? "not-allowed" : "pointer", fontWeight: 600, boxShadow: loading ? "none" : "0 4px 16px rgba(26,138,158,0.25)" }}>
             {loading ? "Saving..." : "💾 Save"}
           </button>
         </div>
       </CollapsibleSection>
 
       {/* Expense Filters */}
-      <div style={{ backgroundColor: "#f8f9fa", border: "1px solid #dee2e6", borderRadius: 10, padding: 15, marginBottom: 20 }}>
+      <div style={{ background: "rgba(10, 31, 51, 0.7)", border: "1px solid rgba(33, 150, 196, 0.1)", borderRadius: 14, padding: 15, marginBottom: 20, backdropFilter: "blur(16px)" }}>
         <div style={{ marginBottom: 15 }}>
           <h3 style={{ margin: 0, marginBottom: 10 }}>📋 Recent Expenses ({filteredAndSortedExpenses.length})</h3>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
@@ -788,7 +790,7 @@ export default function Personal() {
       {/* ← NEW: COLLAPSIBLE EXPENSES LIST */}
       <CollapsibleSection title="All Expenses" icon="📋" badge={filteredAndSortedExpenses.length} defaultOpen={true}>
         {filteredAndSortedExpenses.length === 0 ? (
-          <div style={{ textAlign: "center", padding: 40, color: "#666" }}>
+          <div style={{ textAlign: "center", padding: 40, color: "#5a7a94" }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>📭</div>
             <p>No expenses found for this filter.</p>
           </div>
@@ -798,7 +800,7 @@ export default function Personal() {
             const isEditing = editingId === exp.id;
 
             return (
-              <div key={exp.id} style={{ marginBottom: 12, padding: 15, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, backgroundColor: "#fff", borderRadius: 8, border: "1px solid #e0e0e0" }}>
+              <div key={exp.id} style={{ marginBottom: 12, padding: 15, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, background: "rgba(12, 36, 58, 0.6)", borderRadius: 12, border: "1px solid rgba(33, 150, 196, 0.08)" }}>
                 {isEditing ? (
                   <>
                     <div style={{ flex: 1, display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -819,11 +821,11 @@ export default function Personal() {
                   <>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: "bold", fontSize: 16 }}>{catInfo?.icon} {exp.description || "No description"}</div>
-                      <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>{exp.category} • {new Date(exp.date).toLocaleDateString()}</div>
+                      <div style={{ fontSize: 12, color: "#8ba4bc", marginTop: 4 }}>{exp.category} • {new Date(exp.date).toLocaleDateString()}</div>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <div style={{ fontSize: 18, fontWeight: "bold", color: "#dc2626" }}>₹{Number(exp.amount).toFixed(2)}</div>
-                      <button onClick={() => startEdit(exp)} style={{ background: "#3b82f6", color: "white", border: "none", padding: "6px 12px", borderRadius: 5, cursor: "pointer", fontSize: 14 }}>✏️</button>
+                      <button onClick={() => startEdit(exp)} style={{ background: "linear-gradient(135deg, #1a8a9e, #2196c4)", color: "white", border: "none", padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontSize: 14 }}>✏️</button>
                       <button onClick={() => deleteExpense(exp.id)} style={{ background: "#dc2626", color: "white", border: "none", padding: "6px 12px", borderRadius: 5, cursor: "pointer", fontSize: 14 }}>🗑️</button>
                     </div>
                   </>
@@ -836,21 +838,21 @@ export default function Personal() {
 
       {/* Budget Modal */}
       {showBudgetModal && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }} onClick={() => setShowBudgetModal(false)}>
-          <div style={{ backgroundColor: "white", borderRadius: 10, padding: 30, maxWidth: 900, width: "95%", maxHeight: "80vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, backdropFilter: "blur(8px)" }} onClick={() => setShowBudgetModal(false)}>
+          <div style={{ background: "rgba(10, 31, 51, 0.95)", borderRadius: 16, padding: 30, maxWidth: 900, width: "95%", maxHeight: "80vh", overflowY: "auto", border: "1px solid rgba(33, 150, 196, 0.15)", boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }} onClick={(e) => e.stopPropagation()}>
             <h2 style={{ marginTop: 0 }}>📊 Budget Management</h2>
 
             {allCategories.map((cat) => (
-              <div key={cat.value} style={{ display: "flex", alignItems: "center", marginBottom: 12, padding: 12, backgroundColor: "#f8f9fa", borderRadius: 8, gap: 10 }}>
+              <div key={cat.value} style={{ display: "flex", alignItems: "center", marginBottom: 12, padding: 12, background: "rgba(12, 36, 58, 0.6)", borderRadius: 10, gap: 10, border: "1px solid rgba(33, 150, 196, 0.08)" }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: "bold", fontSize: 14 }}>{cat.icon} {cat.value}</div>
                   {categorySpending[cat.value] && (
-                    <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>Current month: ₹{categorySpending[cat.value].toFixed(0)}</div>
+                    <div style={{ fontSize: 11, color: "#8ba4bc", marginTop: 2 }}>Current month: ₹{categorySpending[cat.value].toFixed(0)}</div>
                   )}
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <input type="number" placeholder="₹0" value={budgetForm[cat.value] || ""} onChange={(e) => setBudgetForm({ ...budgetForm, [cat.value]: e.target.value })} style={{ width: 100, padding: 8, border: "1px solid #ddd", borderRadius: 5, fontSize: 14 }} />
-                  <button onClick={() => saveBudget(cat.value)} style={{ backgroundColor: "#16a34a", color: "white", border: "none", padding: "8px 12px", borderRadius: 5, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Save</button>
+                  <input type="number" placeholder="₹0" value={budgetForm[cat.value] || ""} onChange={(e) => setBudgetForm({ ...budgetForm, [cat.value]: e.target.value })} style={{ width: 100, padding: 8, border: "1px solid rgba(33, 150, 196, 0.15)", borderRadius: 8, fontSize: 14, background: "rgba(12, 36, 58, 0.6)", color: "#e8eff5" }} />
+                  <button onClick={() => saveBudget(cat.value)} style={{ background: "linear-gradient(135deg, #1a8a9e, #2196c4)", color: "white", border: "none", padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Save</button>
                 </div>
               </div>
             ))}
@@ -865,7 +867,7 @@ export default function Personal() {
               }}
             />
 
-            <button onClick={() => setShowBudgetModal(false)} style={{ backgroundColor: "#6c757d", color: "white", border: "none", padding: "10px 20px", borderRadius: 5, cursor: "pointer", marginTop: 15, width: "100%", fontWeight: 600 }}>Close</button>
+            <button onClick={() => setShowBudgetModal(false)} style={{ background: "rgba(90, 122, 148, 0.2)", color: "#8ba4bc", border: "1px solid rgba(33, 150, 196, 0.15)", padding: "10px 20px", borderRadius: 10, cursor: "pointer", marginTop: 15, width: "100%", fontWeight: 600 }}>Close</button>
           </div>
         </div>
       )}

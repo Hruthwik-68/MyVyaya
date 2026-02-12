@@ -980,7 +980,7 @@ export default function Group() {
           <button
             onClick={() => setShowAnalytics(!showAnalytics)}
             style={{
-              background: "linear-gradient(135deg, #667eea, #764ba2)",
+              background: "linear-gradient(135deg, #1a8a9e, #2196c4)",
               color: "white",
               border: "none",
               padding: "10px 15px",
@@ -1012,7 +1012,7 @@ export default function Group() {
           <button
             onClick={() => setShowBudgetModal(true)}
             style={{
-              backgroundColor: "#7c3aed",
+              background: "linear-gradient(135deg, #6d28d9, #8b5cf6)",
               color: "white",
               border: "none",
               padding: "10px 15px",
@@ -1042,8 +1042,8 @@ export default function Group() {
       {/* Smart Split Toggle */}
       <div
         style={{
-          backgroundColor: useSmartSplit ? "#dbeafe" : "#fef3c7",
-          border: `2px solid ${useSmartSplit ? "#3b82f6" : "#f59e0b"}`,
+          backgroundColor: useSmartSplit ? "rgba(33, 150, 196, 0.1)" : "rgba(226, 185, 59, 0.08)",
+          border: `2px solid ${useSmartSplit ? "rgba(33, 150, 196, 0.3)" : "rgba(226, 185, 59, 0.3)"}`,
           borderRadius: 10,
           padding: 15,
           marginBottom: 20,
@@ -1064,7 +1064,7 @@ export default function Group() {
               <span
                 style={{
                   fontSize: 11,
-                  backgroundColor: "#7c3aed",
+                  background: "linear-gradient(135deg, #6d28d9, #8b5cf6)",
                   color: "white",
                   padding: "2px 8px",
                   borderRadius: 12,
@@ -1075,7 +1075,7 @@ export default function Group() {
               </span>
             )}
           </div>
-          <p style={{ margin: 0, fontSize: 13, color: "#666" }}>
+          <p style={{ margin: 0, fontSize: 13, color: "#8ba4bc" }}>
             {useSmartSplit
               ? "✅ Optimized settlements (e.g., A→B→C becomes A→C directly)"
               : "⚠️ Direct settlements only (no optimization across members)"}
@@ -1200,7 +1200,7 @@ export default function Group() {
                 <div
                   key={cat}
                   style={{
-                    backgroundColor: "white",
+                    background: "rgba(10, 31, 51, 0.7)",
                     border: `2px solid ${status.color}`,
                     borderRadius: 8,
                     padding: 15,
@@ -1211,7 +1211,7 @@ export default function Group() {
                       <div style={{ fontSize: 18, fontWeight: "bold" }}>
                         {catInfo?.icon} {cat}
                       </div>
-                      <div style={{ fontSize: 14, color: "#666", marginTop: 4 }}>
+                      <div style={{ fontSize: 14, color: "#8ba4bc", marginTop: 4 }}>
                         ₹{status.spent.toFixed(0)} / ₹{status.limit.toFixed(0)}
                       </div>
                     </div>
@@ -1223,7 +1223,7 @@ export default function Group() {
                   <div
                     style={{
                       marginTop: 10,
-                      backgroundColor: "#e0e0e0",
+                      backgroundColor: "rgba(33, 150, 196, 0.15)",
                       height: 10,
                       borderRadius: 5,
                       overflow: "hidden",
@@ -1391,7 +1391,7 @@ export default function Group() {
                           ₹{(amount as number).toFixed(0)} ({percentage.toFixed(1)}%)
                         </span>
                       </div>
-                      <div style={{ height: 10, backgroundColor: "#e0e0e0", borderRadius: 5, overflow: "hidden" }}>
+                      <div style={{ height: 10, backgroundColor: "rgba(33, 150, 196, 0.15)", borderRadius: 5, overflow: "hidden" }}>
                         <div style={{ width: `${percentage}%`, height: "100%", background: catInfo?.color || "#a29bfe" }} />
                       </div>
                     </div>
@@ -1405,9 +1405,9 @@ export default function Group() {
               {getTopExpenses.map((exp, idx) => {
                 const catInfo = allCategories.find((c) => c.value === exp.category);
                 return (
-                  <div key={exp.id} style={{ display: "flex", justifyContent: "space-between", padding: 12, backgroundColor: "#f9fafb", borderRadius: 8, marginBottom: 8 }}>
+                  <div key={exp.id} style={{ display: "flex", justifyContent: "space-between", padding: 12, background: "rgba(12, 36, 58, 0.6)", borderRadius: 8, marginBottom: 8 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ width: 24, height: 24, borderRadius: "50%", background: "linear-gradient(135deg, #667eea, #764ba2)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: "bold" }}>
+                      <div style={{ width: 24, height: 24, borderRadius: "50%", background: "linear-gradient(135deg, #1a8a9e, #2196c4)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: "bold" }}>
                         {idx + 1}
                       </div>
                       <div>
@@ -1433,7 +1433,7 @@ export default function Group() {
                   <div key={month} style={{ textAlign: "center", minWidth: 80 }}>
                     <div style={{ fontSize: 12, marginBottom: 8 }}>{month}</div>
                     <div style={{ height: 150, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-                      <div style={{ width: 60, height: height, background: "linear-gradient(180deg, #667eea, #764ba2)", borderRadius: "8px 8px 0 0" }} />
+                      <div style={{ width: 60, height: height, background: "linear-gradient(180deg, #1a8a9e, #2196c4)", borderRadius: "8px 8px 0 0" }} />
                     </div>
                     <div style={{ fontSize: 12, fontWeight: "bold", marginTop: 8 }}>₹{(amount as number).toFixed(0)}</div>
                   </div>
@@ -1504,27 +1504,27 @@ export default function Group() {
           <button onClick={deleteGroup} style={{ backgroundColor: "#dc2626", color: "white", border: "none", padding: "12px 24px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 14 }}>
             🗑️ Delete Group (Admin Only)
           </button>
-          <p style={{ fontSize: 12, color: "#666", marginTop: 8 }}>⚠️ All members must be settled before deletion</p>
+          <p style={{ fontSize: 12, color: "#8ba4bc", marginTop: 8 }}>⚠️ All members must be settled before deletion</p>
         </div>
       )}
 
       {/* MODALS - Budget, Wishlist, Receipt Scanner */}
       {showBudgetModal && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }} onClick={() => setShowBudgetModal(false)}>
-          <div style={{ backgroundColor: "white", borderRadius: 10, padding: 30, maxWidth: 800, width: "90%", maxHeight: "80vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, backdropFilter: "blur(8px)" }} onClick={() => setShowBudgetModal(false)}>
+          <div style={{ background: "rgba(10, 31, 51, 0.95)", borderRadius: 16, padding: 30, maxWidth: 800, width: "90%", maxHeight: "80vh", overflowY: "auto", border: "1px solid rgba(33, 150, 196, 0.15)", boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }} onClick={(e) => e.stopPropagation()}>
             <h2 style={{ marginTop: 0 }}>📊 Budget Management</h2>
 
             {allCategories.map((cat) => (
-              <div key={cat.value} style={{ display: "flex", alignItems: "center", marginBottom: 15, padding: 15, backgroundColor: "#f8f9fa", borderRadius: 8, gap: 10 }}>
+              <div key={cat.value} style={{ display: "flex", alignItems: "center", marginBottom: 15, padding: 15, background: "rgba(12, 36, 58, 0.6)", borderRadius: 10, gap: 10, border: "1px solid rgba(33, 150, 196, 0.08)" }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: "bold", fontSize: 16 }}>{cat.icon} {cat.value}</div>
                   {categorySpending[cat.value] && (
-                    <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>Current month: ₹{categorySpending[cat.value].toFixed(0)} spent</div>
+                    <div style={{ fontSize: 12, color: "#8ba4bc", marginTop: 4 }}>Current month: ₹{categorySpending[cat.value].toFixed(0)} spent</div>
                   )}
                 </div>
                 <div style={{ display: "flex", gap: 10 }}>
-                  <input type="number" placeholder="₹0" value={budgetForm[cat.value] || ""} onChange={(e) => setBudgetForm({ ...budgetForm, [cat.value]: e.target.value })} style={{ width: 120, padding: 8, border: "1px solid #ddd", borderRadius: 5 }} />
-                  <button onClick={() => saveBudget(cat.value)} style={{ backgroundColor: "#16a34a", color: "white", border: "none", padding: "8px 16px", borderRadius: 5, cursor: "pointer", whiteSpace: "nowrap" }}>Save</button>
+                  <input type="number" placeholder="₹0" value={budgetForm[cat.value] || ""} onChange={(e) => setBudgetForm({ ...budgetForm, [cat.value]: e.target.value })} style={{ width: 120, padding: 8, border: "1px solid rgba(33, 150, 196, 0.15)", borderRadius: 8, background: "rgba(12, 36, 58, 0.6)", color: "#e8eff5" }} />
+                  <button onClick={() => saveBudget(cat.value)} style={{ background: "linear-gradient(135deg, #1a8a9e, #2196c4)", color: "white", border: "none", padding: "8px 16px", borderRadius: 8, cursor: "pointer", whiteSpace: "nowrap" }}>Save</button>
                 </div>
               </div>
             ))}
@@ -1538,7 +1538,7 @@ export default function Group() {
               }}
             />
 
-            <button onClick={() => setShowBudgetModal(false)} style={{ backgroundColor: "#6c757d", color: "white", border: "none", padding: "10px 20px", borderRadius: 5, cursor: "pointer", marginTop: 20, width: "100%" }}>Close</button>
+            <button onClick={() => setShowBudgetModal(false)} style={{ background: "rgba(90, 122, 148, 0.2)", color: "#8ba4bc", border: "1px solid rgba(33, 150, 196, 0.15)", padding: "10px 20px", borderRadius: 10, cursor: "pointer", marginTop: 20, width: "100%" }}>Close</button>
           </div>
         </div>
       )}

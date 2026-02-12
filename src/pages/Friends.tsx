@@ -37,7 +37,7 @@ export default function Friends() {
 
   useEffect(() => {
     load();
-    
+
     // Real-time updates
     const channel = supabase
       .channel('friend-payments')
@@ -61,7 +61,7 @@ export default function Friends() {
 
   const load = async () => {
     setLoading(true);
-    
+
     const { data: session } = await supabase.auth.getUser();
     const me = session?.user ?? null;
 
@@ -77,7 +77,7 @@ export default function Friends() {
       .eq("user_id", me.id);
 
     const trackerIds = (myGroups || []).map((g) => g.tracker_id);
-    
+
     if (!trackerIds.length) {
       setLoading(false);
       return;
@@ -123,7 +123,7 @@ export default function Friends() {
       const myPendingPayments = pendingPayments.filter(
         (p: Payment) => p.from_user === me.id && p.to_user === fid
       );
-      
+
       const theirPendingPayments = pendingPayments.filter(
         (p: Payment) => p.from_user === fid && p.to_user === me.id
       );
@@ -133,7 +133,7 @@ export default function Friends() {
         name: profile?.name || fid.slice(0, 6),
         upi_id: profile?.upi_id,
         balance: bal,
-        pendingPayment: myPendingPayments.length > 0 ? { 
+        pendingPayment: myPendingPayments.length > 0 ? {
           count: myPendingPayments.length,
           total: myPendingPayments.reduce((sum, p) => sum + Number(p.amount), 0)
         } : undefined,
@@ -202,23 +202,23 @@ export default function Friends() {
   };
 
   // ← NEW: MEMOIZED FRIEND GROUPS
-  const friendsWithDebts = useMemo(() => 
-    friends.filter(f => f.balance < 0), 
+  const friendsWithDebts = useMemo(() =>
+    friends.filter(f => f.balance < 0),
     [friends]
   );
 
-  const friendsWithCredits = useMemo(() => 
-    friends.filter(f => f.balance > 0), 
+  const friendsWithCredits = useMemo(() =>
+    friends.filter(f => f.balance > 0),
     [friends]
   );
 
-  const settledFriends = useMemo(() => 
-    friends.filter(f => f.balance === 0), 
+  const settledFriends = useMemo(() =>
+    friends.filter(f => f.balance === 0),
     [friends]
   );
 
-  const friendsWithPendingRequests = useMemo(() => 
-    friends.filter(f => f.incomingRequest), 
+  const friendsWithPendingRequests = useMemo(() =>
+    friends.filter(f => f.incomingRequest),
     [friends]
   );
 
@@ -231,14 +231,14 @@ export default function Friends() {
 
     const amount = Math.abs(friend.balance);
     const upiUrl = `upi://pay?pa=${friend.upi_id}&pn=${encodeURIComponent(friend.name)}&am=${amount}&cu=INR&tn=${encodeURIComponent('Vyaya Settlement')}`;
-    
+
     window.location.href = upiUrl;
-    
+
     setTimeout(() => {
       const shouldMarkPaid = window.confirm(
         `UPI payment app should have opened.\n\nAfter completing the payment, click OK to mark as paid.`
       );
-      
+
       if (shouldMarkPaid) {
         handleMarkPaid(friend);
       }
@@ -264,8 +264,8 @@ export default function Friends() {
 
       const myTrackerIds = (myGroups || []).map(g => g.tracker_id);
       const friendTrackerIds = (friendGroups || []).map(g => g.tracker_id);
-      
-      const sharedTrackerIds = myTrackerIds.filter(id => 
+
+      const sharedTrackerIds = myTrackerIds.filter(id =>
         friendTrackerIds.includes(id)
       );
 
@@ -275,7 +275,7 @@ export default function Friends() {
       }
 
       const groupBalances: { trackerId: string; balance: number }[] = [];
-      
+
       for (const trackerId of sharedTrackerIds) {
         const bal = await calcBalance(user.id, friend.id, [trackerId]);
         if (bal < 0) {
@@ -321,7 +321,7 @@ export default function Friends() {
   // UNIFIED CONFIRM
   const handleConfirmPayment = async (friend: FriendRow) => {
     if (processingPayment || !friend.incomingRequest) return;
-    
+
     setProcessingPayment(friend.id);
 
     try {
@@ -329,7 +329,7 @@ export default function Friends() {
 
       const { error } = await supabase
         .from("payments")
-        .update({ 
+        .update({
           status: "confirmed",
           confirmed_at: new Date().toISOString()
         })
@@ -351,9 +351,9 @@ export default function Friends() {
   // UNIFIED REJECT
   const handleRejectPayment = async (friend: FriendRow) => {
     if (processingPayment || !friend.incomingRequest) return;
-    
+
     if (!confirm(`Reject ₹${friend.incomingRequest.total.toFixed(2)} payment from ${friend.name}?`)) return;
-    
+
     setProcessingPayment(friend.id);
 
     try {
@@ -385,17 +385,18 @@ export default function Friends() {
       style={{
         padding: 15,
         marginBottom: 15,
-        border: "1px solid #ddd",
-        borderRadius: 8,
-        backgroundColor: "#fff",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+        border: "1px solid rgba(33, 150, 196, 0.1)",
+        borderRadius: 12,
+        background: "rgba(10, 31, 51, 0.7)",
+        backdropFilter: "blur(16px)",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.25)"
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
         <div style={{ flex: 1, minWidth: 200 }}>
           <strong style={{ fontSize: 18 }}>{f.name}</strong>
           {f.upi_id && (
-            <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>
+            <div style={{ fontSize: 12, color: "#8ba4bc", marginTop: 2 }}>
               💳 {f.upi_id}
             </div>
           )}
@@ -408,8 +409,8 @@ export default function Friends() {
                 f.balance > 0
                   ? "green"
                   : f.balance < 0
-                  ? "red"
-                  : "#666",
+                    ? "red"
+                    : "#5a7a94",
             }}
           >
             {f.balance > 0 && `↓ ${f.name} owes you ₹${f.balance.toFixed(2)}`}
@@ -542,7 +543,7 @@ export default function Friends() {
           style={{
             marginTop: 10,
             padding: 10,
-            backgroundColor: "#fef3c7",
+            backgroundColor: "rgba(226, 185, 59, 0.08)",
             borderRadius: 6,
             fontSize: 14
           }}
@@ -556,7 +557,7 @@ export default function Friends() {
           style={{
             marginTop: 10,
             padding: 10,
-            backgroundColor: "#dbeafe",
+            backgroundColor: "rgba(33, 150, 196, 0.1)",
             borderRadius: 6,
             fontSize: 14
           }}
@@ -571,7 +572,7 @@ export default function Friends() {
     <div style={{ padding: 20, maxWidth: 800, margin: "0 auto" }}>
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ margin: 0, marginBottom: 5 }}>👥 Your Friends</h2>
-        <p style={{ color: "#666", fontSize: 14, margin: 0 }}>
+        <p style={{ color: "#8ba4bc", fontSize: 14, margin: 0 }}>
           Net balance across all shared groups
         </p>
       </div>
@@ -579,20 +580,20 @@ export default function Friends() {
       {loading && (
         <div style={{ textAlign: "center", padding: 40 }}>
           <div className="spinner"></div>
-          <p style={{ color: "#666", marginTop: 10 }}>Loading...</p>
+          <p style={{ color: "#8ba4bc", marginTop: 10 }}>Loading...</p>
         </div>
       )}
 
       {!loading && !friends.length && (
-        <div style={{ 
-          textAlign: "center", 
+        <div style={{
+          textAlign: "center",
           padding: 40,
-          backgroundColor: "#f9fafb",
+          backgroundColor: "rgba(10, 31, 51, 0.5)",
           borderRadius: 12,
-          border: "2px dashed #e5e7eb"
+          border: "2px dashed rgba(33, 150, 196, 0.15)"
         }}>
           <div style={{ fontSize: 48, marginBottom: 10 }}>👥</div>
-          <p style={{ color: "#999", fontStyle: "italic", margin: 0 }}>
+          <p style={{ color: "#5a7a94", fontStyle: "italic", margin: 0 }}>
             No friends yet. Join a group to see friends!
           </p>
         </div>
@@ -602,9 +603,9 @@ export default function Friends() {
         <>
           {/* ← NEW: COLLAPSIBLE PENDING REQUESTS */}
           {friendsWithPendingRequests.length > 0 && (
-            <CollapsibleSection 
-              title="Pending Payment Requests" 
-              icon="🔔" 
+            <CollapsibleSection
+              title="Pending Payment Requests"
+              icon="🔔"
               badge={friendsWithPendingRequests.length}
               badgeColor="#ef4444"
               defaultOpen={true}
@@ -615,9 +616,9 @@ export default function Friends() {
 
           {/* ← NEW: COLLAPSIBLE YOU OWE */}
           {friendsWithDebts.length > 0 && (
-            <CollapsibleSection 
-              title="You Owe" 
-              icon="↑" 
+            <CollapsibleSection
+              title="You Owe"
+              icon="↑"
               badge={friendsWithDebts.length}
               badgeColor="#dc2626"
               defaultOpen={true}
@@ -628,9 +629,9 @@ export default function Friends() {
 
           {/* ← NEW: COLLAPSIBLE THEY OWE YOU */}
           {friendsWithCredits.length > 0 && (
-            <CollapsibleSection 
-              title="They Owe You" 
-              icon="↓" 
+            <CollapsibleSection
+              title="They Owe You"
+              icon="↓"
               badge={friendsWithCredits.length}
               badgeColor="#16a34a"
               defaultOpen={true}
@@ -641,9 +642,9 @@ export default function Friends() {
 
           {/* ← NEW: COLLAPSIBLE SETTLED */}
           {settledFriends.length > 0 && (
-            <CollapsibleSection 
-              title="Settled Up" 
-              icon="✓" 
+            <CollapsibleSection
+              title="Settled Up"
+              icon="✓"
               badge={settledFriends.length}
               badgeColor="#6b7280"
               defaultOpen={false}
@@ -655,9 +656,9 @@ export default function Friends() {
       )}
 
       {/* Info Box */}
-      <div style={{ marginTop: 30, padding: 15, backgroundColor: "#f0f9ff", borderRadius: 8, border: "1px solid #bfdbfe" }}>
-        <h3 style={{ margin: "0 0 10px 0", fontSize: 16, color: "#1e40af" }}>💡 How Unified Payments Work</h3>
-        <ul style={{ margin: 0, paddingLeft: 20, fontSize: 14, color: "#333", lineHeight: 1.8 }}>
+      <div style={{ marginTop: 30, padding: 15, background: "rgba(26, 138, 158, 0.08)", borderRadius: 12, border: "1px solid rgba(77, 184, 217, 0.15)" }}>
+        <h3 style={{ margin: "0 0 10px 0", fontSize: 16, color: "#4db8d9" }}>💡 How Unified Payments Work</h3>
+        <ul style={{ margin: 0, paddingLeft: 20, fontSize: 14, color: "#8ba4bc", lineHeight: 1.8 }}>
           <li><strong>One Payment = All Groups:</strong> Mark paid once, updates across ALL shared groups</li>
           <li><strong>Smart Calculation:</strong> Automatically calculates what you owe per group</li>
           <li><strong>Instant UPI:</strong> Pay directly via PhonePe/GPay with amount pre-filled</li>

@@ -1,11 +1,11 @@
 :root {
-  --navy: #0b1f3a;
-  --navy-light: #102a4f;
-  --blue: #2563eb;
-  --blue-light: #3b82f6;
-  --gray: #9ca3af;
-  --bg: #f3f6fc;
-  --white: #ffffff;
+  --navy: #071a2b;
+  --navy-light: #0a2540;
+  --blue: #2196c4;
+  --blue-light: #4db8d9;
+  --gray: #8ba4bc;
+  --bg: #04111d;
+  --white: #0a1f33;
 }
 
 body {
@@ -47,16 +47,19 @@ body {
   margin-top: 16px;
   font-size: 22px;
   font-weight: 700;
-  color: var(--navy);
+  color: var(--text-primary, #e8eff5);
 }
 
 /* SECTIONS AS CARDS */
 .card {
-  background: white;
+  background: var(--bg-card, rgba(10, 31, 51, 0.7));
   border-radius: 14px;
   padding: 18px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   margin-top: 14px;
+  border: 1px solid rgba(33, 150, 196, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 /* BUTTON GROUP LAYOUT */
@@ -104,7 +107,7 @@ button.secondary {
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: var(--navy);
+  color: var(--text-primary, #e8eff5);
   margin-bottom: 10px;
 }
 
@@ -365,7 +368,7 @@ button.secondary {
   transform: translateX(-50%);
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(59, 139, 255, 0.06), transparent 70%);
+  background: radial-gradient(circle, rgba(26, 138, 158, 0.08), transparent 70%);
   pointer-events: none;
 }
 
@@ -389,7 +392,7 @@ button.secondary {
 
 .home-title strong {
   font-weight: 600;
-  background: linear-gradient(135deg, #3b8bff, #22d3ee);
+  background: linear-gradient(135deg, #1a8a9e, #4db8d9);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -443,7 +446,7 @@ button.secondary {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(59, 139, 255, 0), transparent);
+  background: linear-gradient(90deg, transparent, rgba(26, 138, 158, 0), transparent);
   transition: all 0.3s ease;
 }
 
@@ -451,11 +454,11 @@ button.secondary {
   background: var(--bg-card-hover);
   border-color: var(--border-hover);
   transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(59, 139, 255, 0.08);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(26, 138, 158, 0.1);
 }
 
 .home-action-card:hover::before {
-  background: linear-gradient(90deg, transparent, rgba(59, 139, 255, 0.5), transparent);
+  background: linear-gradient(90deg, transparent, rgba(77, 184, 217, 0.5), transparent);
 }
 
 .home-action-card:active {
@@ -475,7 +478,7 @@ button.secondary {
 }
 
 .home-action-icon.icon-blue {
-  background: rgba(59, 139, 255, 0.12);
+  background: rgba(33, 150, 196, 0.15);
 }
 
 .home-action-icon.icon-green {
@@ -483,7 +486,7 @@ button.secondary {
 }
 
 .home-action-icon.icon-cyan {
-  background: rgba(34, 211, 238, 0.12);
+  background: rgba(77, 184, 217, 0.15);
 }
 
 .home-action-icon.icon-pink {
@@ -495,7 +498,7 @@ button.secondary {
 }
 
 .home-action-icon.icon-purple {
-  background: rgba(139, 92, 246, 0.12);
+  background: rgba(124, 108, 240, 0.15);
 }
 
 .home-action-title {
@@ -624,7 +627,7 @@ button.secondary {
 
 .home-empty-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(59, 139, 255, 0.3);
+  box-shadow: 0 8px 24px rgba(26, 138, 158, 0.3);
 }
 
 /* --- Loading --- */
