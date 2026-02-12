@@ -53,6 +53,7 @@ export default function Personal() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showFiltersModal, setShowFiltersModal] = useState(false);
 
   // Wishlist states
   const [wishlistItems, setWishlistItems] = useState<any[]>([]);
@@ -63,7 +64,7 @@ export default function Personal() {
   // ← NEW: Advanced Filter & Sort States
   const [filters, setFilters] = useState<FilterOptions>({});
   const [sortOptions, setSortOptions] = useState<SortOptions>({ field: "date", direction: "desc" });
-  
+
   // ← NEW: Custom Categories State
   const [customCategories, setCustomCategories] = useState<any[]>([]);
 
@@ -154,7 +155,7 @@ export default function Personal() {
       .from("custom_categories")
       .select("*")
       .eq("tracker_id", tId);
-    
+
     setCustomCategories(data || []);
   };
 
@@ -223,7 +224,7 @@ export default function Personal() {
     // Sorting
     result.sort((a, b) => {
       let comparison = 0;
-      
+
       switch (sortOptions.field) {
         case "date":
           comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
@@ -235,7 +236,7 @@ export default function Personal() {
           comparison = (a.category || "").localeCompare(b.category || "");
           break;
       }
-      
+
       return sortOptions.direction === "asc" ? comparison : -comparison;
     });
 
@@ -335,7 +336,7 @@ export default function Personal() {
     const spending: { [key: string]: number } = {};
     const targetMonth = forMonth ?? filterMonth;
     const targetYear = forYear ?? filterYear;
-    
+
     expenses.forEach((exp) => {
       const expDate = new Date(exp.date);
       if (
@@ -375,13 +376,13 @@ export default function Personal() {
     return { spent, limit, percentage, status, color };
   }, [budgets, categorySpending]);
 
-  const totalSpent = useMemo(() => 
-    Object.values(categorySpending).reduce((sum, amt) => sum + amt, 0), 
+  const totalSpent = useMemo(() =>
+    Object.values(categorySpending).reduce((sum, amt) => sum + amt, 0),
     [categorySpending]
   );
-  
-  const totalBudget = useMemo(() => 
-    budgets.reduce((sum, b) => sum + Number(b.monthly_limit), 0), 
+
+  const totalBudget = useMemo(() =>
+    budgets.reduce((sum, b) => sum + Number(b.monthly_limit), 0),
     [budgets]
   );
 
@@ -558,9 +559,27 @@ export default function Personal() {
       </div>
 
       {/* ← NEW: ADVANCED FILTERS */}
+      <button
+        onClick={() => setShowFiltersModal(true)}
+        style={{
+          marginBottom: 15,
+          padding: "10px 20px",
+          background: "linear-gradient(135deg, #3b82f6, #1d4ed8)",
+          color: "white",
+          border: "none",
+          borderRadius: 8,
+          cursor: "pointer",
+          fontWeight: 600,
+          fontSize: 14,
+        }}
+      >
+        🔍 Filters & Sort
+      </button>
       <AdvancedFilters
+        isOpen={showFiltersModal}
+        onClose={() => setShowFiltersModal(false)}
         currentUserId={currentUser?.id}
-        members={[{ user_id: currentUser?.id }]} // Personal has only one user
+        members={[{ user_id: currentUser?.id }]}
         categories={allCategories}
         showName={(uid) => "You"}
         onFilterChange={handleFilterChange}

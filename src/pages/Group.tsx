@@ -68,6 +68,7 @@ export default function Group() {
 
   // Analytics state
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showFiltersModal, setShowFiltersModal] = useState(false);
 
   // Filter states
   const [filterMonth, setFilterMonth] = useState(new Date().getMonth());
@@ -88,7 +89,7 @@ export default function Group() {
   // Advanced Filter & Sort States
   const [filters, setFilters] = useState<FilterOptions>({});
   const [sortOptions, setSortOptions] = useState<SortOptions>({ field: "date", direction: "desc" });
-  
+
   // Custom Categories State
   const [customCategories, setCustomCategories] = useState<any[]>([]);
 
@@ -119,7 +120,7 @@ export default function Group() {
     if (tracker) {
       setGroupData(tracker);
       setUseSmartSplit(tracker.use_smart_split ?? true);
-      
+
       // ✅ FIX: Check admin status
       if (currentUser?.id === tracker.admin_user_id) {
         setIsAdmin(true);
@@ -133,7 +134,7 @@ export default function Group() {
       .from("custom_categories")
       .select("*")
       .eq("tracker_id", id);
-    
+
     setCustomCategories(data || []);
   };
 
@@ -176,13 +177,13 @@ export default function Group() {
       if (error) throw error;
 
       setUseSmartSplit(newMode);
-      
+
       // ✅ FIX: Force full data reload
       await Promise.all([
         loadExpenses(),
         loadPayments(),
       ]);
-      
+
       alert(`✅ Split mode updated to ${newMode ? "Smart" : "Normal"} Split!`);
     } catch (error) {
       console.error("Error updating split mode:", error);
@@ -338,18 +339,18 @@ export default function Group() {
     setFilteredExpenses(filtered);
   };
 
-// CONTINUE IN PART 2...
+  // CONTINUE IN PART 2...
 
-// ============================================
-// GROUP.TSX - PART 2: ADVANCED FILTERS + BUSINESS LOGIC (FIXED)
-// ============================================
+  // ============================================
+  // GROUP.TSX - PART 2: ADVANCED FILTERS + BUSINESS LOGIC (FIXED)
+  // ============================================
 
   // ✅ FIX #9: APPLY ADVANCED FILTERS & SORTING (All user filters now working)
- // ============================================
-// GROUP.TSX - PART 2: FIXED NORMAL SPLIT ALGORITHM
-// ✅ Normal Split: Only cancels direct debts (A→B + B→A)
-// ✅ Smart Split: Full optimization (A→B→C becomes A→C)
-// ============================================
+  // ============================================
+  // GROUP.TSX - PART 2: FIXED NORMAL SPLIT ALGORITHM
+  // ✅ Normal Split: Only cancels direct debts (A→B + B→A)
+  // ✅ Smart Split: Full optimization (A→B→C becomes A→C)
+  // ============================================
 
   // ✅ FIX #9: APPLY ADVANCED FILTERS & SORTING (All user filters now working)
   const filteredAndSortedExpenses = useMemo(() => {
@@ -376,7 +377,7 @@ export default function Group() {
     }
     if (filters.showOnlyTheyOweMe) {
       result = result.filter(exp => {
-        return exp.paid_by === currentUser?.id && 
+        return exp.paid_by === currentUser?.id &&
           exp.expense_splits?.some((s: any) => s.user_id !== currentUser?.id);
       });
     }
@@ -397,7 +398,7 @@ export default function Group() {
     // Sorting
     result.sort((a, b) => {
       let comparison = 0;
-      
+
       switch (sortOptions.field) {
         case "date":
           comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
@@ -412,7 +413,7 @@ export default function Group() {
           comparison = showName(a.paid_by).localeCompare(showName(b.paid_by));
           break;
       }
-      
+
       return sortOptions.direction === "asc" ? comparison : -comparison;
     });
 
@@ -473,13 +474,13 @@ export default function Group() {
     // ✅ FIX: Reload data and reset form
     await loadExpenses();
     await loadPayments();
-    
+
     setAmount("");
     setDesc("");
     setCategory("General");
     setPaidBy(currentUser?.id || "");
     setLoading(false);
-    
+
     alert("✅ Expense added successfully!");
   };
 
@@ -587,7 +588,7 @@ export default function Group() {
   const totalSpent = useMemo(() => {
     return Object.values(categorySpending).reduce((sum, amt) => sum + amt, 0);
   }, [categorySpending]);
-  
+
   const totalBudget = useMemo(() => {
     return budgets.reduce((sum, b) => sum + Number(b.monthly_limit), 0);
   }, [budgets]);
@@ -628,7 +629,7 @@ export default function Group() {
   // ============================================
   const calculateSettlements = useCallback(() => {
     const users = Object.keys(balances);
-    
+
     if (useSmartSplit) {
       // ========================================
       // SMART SPLIT: Full Optimization
@@ -667,27 +668,27 @@ export default function Group() {
       }
 
       return settlements;
-      
+
     } else {
       // ========================================
       // ✅ FIXED NORMAL SPLIT: Direct Cancellation Only
       // Only cancels A→B if B→A exists
       // Does NOT optimize across multiple people
       // ========================================
-      
+
       // Example: A→B(100), B→C(200), C→A(200), A→C(50)
       // Result: C→A(150), A→B(100), B→C(200)
       // Only A→C + C→A cancel each other (50 each)
-      
+
       const settlements: any[] = [];
       const balancesCopy = { ...balances };
 
       // Build direct debts matrix
       const directDebts: Record<string, Record<string, number>> = {};
-      
+
       users.forEach(debtor => {
         if (balancesCopy[debtor] >= -0.01) return;
-        
+
         users.forEach(creditor => {
           if (balancesCopy[creditor] <= 0.01) return;
           if (debtor === creditor) return;
@@ -720,7 +721,7 @@ export default function Group() {
           if (AtoB > 0.01 && BtoA > 0.01) {
             // Both owe each other - cancel the smaller amount
             const cancelAmount = Math.min(AtoB, BtoA);
-            
+
             if (AtoB > BtoA) {
               // A still owes B after cancellation
               directDebts[userA][userB] -= cancelAmount;
@@ -739,10 +740,10 @@ export default function Group() {
       // Build final settlements from remaining debts
       users.forEach(debtor => {
         if (!directDebts[debtor]) return;
-        
+
         users.forEach(creditor => {
           const amount = directDebts[debtor][creditor];
-          
+
           if (amount > 0.01) {
             settlements.push({
               from: debtor,
@@ -802,7 +803,7 @@ export default function Group() {
         // Number Pay via PhonePe
         const phonePayUrl = `phonepe://pay?pa=${profile.phone_number}@ybl&pn=${encodeURIComponent(profile.name)}&am=${settlement.amount}&cu=INR&tn=${encodeURIComponent(groupData?.name || 'Settlement')}`;
         window.location.href = phonePayUrl;
-        
+
         // Fallback - show phone number
         setTimeout(() => {
           alert(
@@ -821,7 +822,7 @@ export default function Group() {
       // Only phone number available
       const phonePayUrl = `phonepe://pay?pa=${profile.phone_number}@ybl&pn=${encodeURIComponent(profile.name)}&am=${settlement.amount}&cu=INR&tn=${encodeURIComponent(groupData?.name || 'Settlement')}`;
       window.location.href = phonePayUrl;
-      
+
       setTimeout(() => {
         alert(
           `Pay ₹${settlement.amount} to:\n\n` +
@@ -864,7 +865,7 @@ export default function Group() {
   const confirmPayment = async (pid: string) => {
     await supabase
       .from("payments")
-      .update({ 
+      .update({
         status: "confirmed",
         confirmed_at: new Date().toISOString()
       })
@@ -933,15 +934,15 @@ export default function Group() {
 
   const isMobile = window.innerWidth < 640;
 
-// CONTINUE IN PART 3 (UI RENDERING)...
+  // CONTINUE IN PART 3 (UI RENDERING)...
 
 
-// CONTINUE IN PART 3...
+  // CONTINUE IN PART 3...
 
-// ============================================
-// GROUP.TSX - PART 3: UI RENDERING (FIXED)
-// ✅ FIX #8: Budget made collapsible
-// ============================================
+  // ============================================
+  // GROUP.TSX - PART 3: UI RENDERING (FIXED)
+  // ✅ FIX #8: Budget made collapsible
+  // ============================================
 
   return (
     <div style={{ padding: "15px", maxWidth: 1200, margin: "0 auto" }}>
@@ -1056,7 +1057,7 @@ export default function Group() {
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 5 }}>
             <h3 style={{ margin: 0, fontSize: 16 }}>
-              {useSmartSplit ? "🔄 Smart Split" : "📍 Normal Split"} 
+              {useSmartSplit ? "🔄 Smart Split" : "📍 Normal Split"}
               {updatingSplitMode && " (Updating...)"}
             </h3>
             {isAdmin && (
@@ -1115,28 +1116,46 @@ export default function Group() {
       />
 
       {/* Advanced Filters */}
+      <button
+        onClick={() => setShowFiltersModal(true)}
+        style={{
+          marginBottom: 15,
+          padding: "10px 20px",
+          background: "linear-gradient(135deg, #3b82f6, #1d4ed8)",
+          color: "white",
+          border: "none",
+          borderRadius: 8,
+          cursor: "pointer",
+          fontWeight: 600,
+          fontSize: 14,
+        }}
+      >
+        🔍 Filters & Sort
+      </button>
       <AdvancedFilters
-  currentUserId={currentUser?.id}
-  members={members}
-  categories={allCategories}
-  showName={showName}
-  onFilterChange={handleFilterChange}
-  onSortChange={handleSortChange}
-  filterMonth={filterMonth}
-  filterYear={filterYear}
-  onMonthChange={setFilterMonth}
-  onYearChange={setFilterYear}
-  onExportCSV={exportToCSV}
-  dateFrom={dateFrom}
-  dateTo={dateTo}
-  onDateFromChange={setDateFrom}
-  onDateToChange={setDateTo}
-  totalExpenses={filteredAndSortedExpenses.length}
-/>
+        isOpen={showFiltersModal}
+        onClose={() => setShowFiltersModal(false)}
+        currentUserId={currentUser?.id}
+        members={members}
+        categories={allCategories}
+        showName={showName}
+        onFilterChange={handleFilterChange}
+        onSortChange={handleSortChange}
+        filterMonth={filterMonth}
+        filterYear={filterYear}
+        onMonthChange={setFilterMonth}
+        onYearChange={setFilterYear}
+        onExportCSV={exportToCSV}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        onDateFromChange={setDateFrom}
+        onDateToChange={setDateTo}
+        totalExpenses={filteredAndSortedExpenses.length}
+      />
 
       {/* ✅ FIX #8: Budget Overview - Now Collapsible */}
       {budgets.length > 0 && (
-        <CollapsibleSection 
+        <CollapsibleSection
           title={`Budget Overview - ${new Date(filterYear, filterMonth).toLocaleDateString("en-US", { month: "long", year: "numeric" })}`}
           icon="📊"
           defaultOpen={false}
@@ -1162,11 +1181,11 @@ export default function Group() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: isMobile 
-                ? "1fr" 
-                : window.innerWidth < 1024 
-                ? "repeat(2, 1fr)" 
-                : "repeat(auto-fit, minmax(280px, 1fr))",
+              gridTemplateColumns: isMobile
+                ? "1fr"
+                : window.innerWidth < 1024
+                  ? "repeat(2, 1fr)"
+                  : "repeat(auto-fit, minmax(280px, 1fr))",
               gap: 15,
             }}
           >
@@ -1431,9 +1450,9 @@ export default function Group() {
       </CollapsibleSection>
 
       {/* Balance */}
-      <CollapsibleSection 
-        title="Your Balance" 
-        icon="💰" 
+      <CollapsibleSection
+        title="Your Balance"
+        icon="💰"
         badge={balances[currentUser?.id] > 0 ? "↑" : balances[currentUser?.id] < 0 ? "↓" : "✓"}
         badgeColor={balances[currentUser?.id] > 0 ? "#16a34a" : balances[currentUser?.id] < 0 ? "#dc2626" : "#6b7280"}
         defaultOpen={false}
@@ -1455,9 +1474,9 @@ export default function Group() {
       </CollapsibleSection>
 
       {/* Pending Payments */}
-      <CollapsibleSection 
-        title="Pending Confirmations" 
-        icon="⏳" 
+      <CollapsibleSection
+        title="Pending Confirmations"
+        icon="⏳"
         badge={payments.filter(p => p.status === "pending" && p.to_user === currentUser?.id).length}
         badgeColor="#f59e0b"
         defaultOpen={false}
@@ -1466,9 +1485,9 @@ export default function Group() {
       </CollapsibleSection>
 
       {/* Payment History */}
-      <CollapsibleSection 
-        title="Payment History" 
-        icon="📜" 
+      <CollapsibleSection
+        title="Payment History"
+        icon="📜"
         badge={payments.filter(p => p.status === "confirmed").length}
         badgeColor="#10b981"
         defaultOpen={false}
