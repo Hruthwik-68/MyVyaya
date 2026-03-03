@@ -528,13 +528,13 @@ button.secondary {
 
 .action-label {
   font-size: 15px;
-  font-weight: 500;
-  color: var(--text-primary);
+  font-weight: 600;
+  color: #f0f6fc;
 }
 
 .action-desc {
   font-size: 12px;
-  color: var(--text-muted);
+  color: #8ba4bc;
   line-height: 1.4;
 }
 
@@ -582,13 +582,13 @@ button.secondary {
 .group-name {
   font-size: 16px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #f0f6fc;
   margin-bottom: 4px;
 }
 
 .group-meta {
   font-size: 13px;
-  color: var(--text-muted);
+  color: #8ba4bc;
   display: flex;
   align-items: center;
   gap: 12px;

@@ -71,7 +71,7 @@ export default function Group() {
   const [showFiltersModal, setShowFiltersModal] = useState(false);
 
   // Filter states
-  const [filterMonth, setFilterMonth] = useState(new Date().getMonth());
+  const [filterMonth, setFilterMonth] = useState(-1);
   const [filterYear, setFilterYear] = useState(new Date().getFullYear());
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -326,6 +326,7 @@ export default function Group() {
         );
       });
     }
+    // When filterMonth is -1, show ALL expenses (no month filter)
 
     if (dateFrom && dateTo) {
       filtered = filtered.filter((exp) => {
