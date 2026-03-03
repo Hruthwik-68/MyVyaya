@@ -364,10 +364,10 @@ button.secondary {
 
 .hero-greeting {
   font-size: 14px;
-  color: var(--text-accent);
-  font-weight: 500;
+  color: #56ccf2;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   margin-bottom: 8px;
   display: flex;
   align-items: center;
@@ -377,9 +377,10 @@ button.secondary {
 .hero-greeting::before {
   content: '';
   display: block;
-  width: 20px;
-  height: 1px;
-  background: var(--text-accent);
+  width: 24px;
+  height: 2px;
+  background: linear-gradient(90deg, #22d3ee, #3b8bff);
+  border-radius: 2px;
 }
 
 .hero-title {
@@ -400,7 +401,7 @@ button.secondary {
 
 .hero-subtitle {
   font-size: 16px;
-  color: var(--text-secondary);
+  color: #b0c4d8;
   max-width: 500px;
   line-height: 1.6;
 }
@@ -417,8 +418,8 @@ button.secondary {
 
 .section-title {
   font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-weight: 700;
+  color: #f0f6fc;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -426,16 +427,23 @@ button.secondary {
 
 .section-action {
   font-size: 13px;
-  color: var(--text-accent);
+  font-weight: 600;
+  color: #56ccf2;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
   align-items: center;
   gap: 4px;
+  background: rgba(34, 211, 238, 0.08);
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(34, 211, 238, 0.15);
 }
 
 .section-action:hover {
-  text-decoration: underline;
+  background: rgba(34, 211, 238, 0.15);
+  border-color: rgba(34, 211, 238, 0.3);
+  color: #7dd8f0;
 }
 
 /* --- Quick Actions Grid --- */
@@ -447,8 +455,8 @@ button.secondary {
 }
 
 .action-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
+  background: rgba(10, 31, 51, 0.8);
+  border: 1px solid rgba(33, 150, 196, 0.15);
   border-radius: 16px;
   padding: 20px;
   display: flex;
@@ -601,7 +609,7 @@ button.secondary {
 }
 
 .group-arrow {
-  color: var(--text-muted);
+  color: #8ba4bc;
   transition: transform 0.2s;
 }
 
